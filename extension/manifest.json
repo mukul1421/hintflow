@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "HintFlow",
+  "description": "Your AI coding mentor for LeetCode.",
+  "version": "1.0.0",
+
+  "permissions": [
+    "storage"
+  ],
+
+  "host_permissions": [
+    "https://leetcode.com/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://leetcode.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ]
+    }
+  ]
+}

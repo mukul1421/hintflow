@@ -1,0 +1,1 @@
+console.log("HintFlow background service started.");

@@ -1,0 +1,1 @@
+console.log("HintFlow injected into LeetCode!");
