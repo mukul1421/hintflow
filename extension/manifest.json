@@ -9,7 +9,9 @@
   ],
 
   "host_permissions": [
-    "https://leetcode.com/*"
+    "https://leetcode.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "http://localhost:3000/*"
   ],
 
   "background": {
@@ -22,11 +24,25 @@
         "https://leetcode.com/*"
       ],
       "js": [
+        "inject.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://leetcode.com/*"
+      ],
+      "js": [
+        "parser/leetcodeParser.js",
+        "ui/sidebar.js",
         "content.js"
       ],
       "css": [
         "styles.css"
-      ]
+      ],
+      "world": "ISOLATED",
+      "run_at": "document_idle"
     }
   ]
 }

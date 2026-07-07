@@ -1,6 +1,22 @@
+/* Host-level styles for HintFlow. 
+   These run in the main page context to adjust LeetCode's layout when the sidebar is open. */
+
+body.hintflow-sidebar-open {
+  padding-right: 480px !important;
+}
+
+body.hintflow-sidebar-open #__next,
+body.hintflow-sidebar-open #root,
+body.hintflow-sidebar-open .main-content {
+  max-width: calc(100vw - 480px) !important;
+}
+
+/* Base style for the root shadow host container */
 #hintflow-root {
   position: fixed;
-  top: 100px;
-  right: 20px;
-  z-index: 999999;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 100vh;
+  z-index: 2147483647; /* Set to maximum possible z-index to stay on top of everything */
 }
