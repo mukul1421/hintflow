@@ -6,7 +6,7 @@ class HintFlowSidebar {
     
     // UI state
     this.isOpen = false;
-    this.activeTab = 'interviewer'; // 'interviewer' | 'hints' | 'review' | 'insights'
+    this.activeTab = 'interviewer'; // 'interviewer' | 'hints'
     this.currentCode = "";
     this.currentLanguage = "";
     this.isResponding = false;
@@ -14,9 +14,7 @@ class HintFlowSidebar {
     // Conversation histories
     this.histories = {
       interviewer: [],
-      hints: [],
-      review: [],
-      insights: []
+      hints: []
     };
     
     // Settings configuration
@@ -119,8 +117,6 @@ class HintFlowSidebar {
     } else if (this.activeTab === 'hints') {
       welcome = "Welcome to Hint mode! I will act as a coding tutor. I'll read the problem and your code, then guide you step-by-step. Let me know when you need a nudge.";
       this.widgetState.hintText = "Click \"Next Hint\" or ask a question to receive a step-by-step nudge.";
-    } else {
-      welcome = "Hi! Let me know what you want to review or analyze.";
     }
     
     this.histories[this.activeTab].push({
@@ -135,64 +131,81 @@ class HintFlowSidebar {
   render() {
     this.shadowRoot.innerHTML = `
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
         :host {
-          font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          color: #e2e8f0;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          color: #eff1f6;
           box-sizing: border-box;
         }
 
         * {
           box-sizing: border-box;
           scrollbar-width: thin;
-          scrollbar-color: #334155 #0f172a;
+          scrollbar-color: #3d3d3d #1a1a1a;
         }
 
-        /* Floating Toggle Button */
+        /* Webkit Scrollbar */
+        ::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+          background: #1a1a1a;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #3d3d3d;
+          border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #4d4d4d;
+        }
+
+        /* Floating Toggle Button - Premium Glow Style */
         .hf-floating-toggle {
           position: fixed;
           bottom: 24px;
           right: 24px;
-          width: 58px;
-          height: 58px;
+          width: 52px;
+          height: 52px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #6366f1, #4f46e5);
-          color: white;
-          border: none;
+          background: #1a1a1a;
+          color: #ffa116;
+          border: 1px solid #ffa116;
           cursor: pointer;
-          box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 161, 22, 0.25);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 26px;
-          transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          font-size: 24px;
+          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
           z-index: 2147483647;
-          border: 1px solid rgba(255,255,255,0.1);
         }
         
         .hf-floating-toggle:hover {
-          transform: scale(1.08) rotate(15deg);
-          box-shadow: 0 12px 35px rgba(99, 102, 241, 0.6);
+          transform: scale(1.08) translateY(-2px);
+          background: #222222;
+          border-color: #ffb84d;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 161, 22, 0.4);
         }
 
         .hf-floating-toggle.hidden {
-          transform: scale(0) rotate(-90deg);
+          transform: scale(0);
           opacity: 0;
           pointer-events: none;
         }
 
-        /* Sidebar Wrapper */
+        /* Sidebar Wrapper with Elegant Depth Shadow */
         .hf-sidebar-wrapper {
           position: fixed;
           top: 0;
           right: -480px;
           width: 480px;
           height: 100vh;
-          background: #090d16;
-          border-left: 1px solid rgba(99, 102, 241, 0.2);
-          box-shadow: -12px 0 45px rgba(0, 0, 0, 0.7);
-          transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+          background: #1a1a1a;
+          border-left: 1px solid #2e2e2e;
+          box-shadow: -15px 0 45px rgba(0, 0, 0, 0.7);
+          transition: right 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
           z-index: 2147483646;
           display: flex;
           flex-direction: column;
@@ -202,55 +215,42 @@ class HintFlowSidebar {
           right: 0;
         }
 
-        /* Inner Layout: Split Pane */
+        /* Inner Layout: Single Column */
         .hf-sidebar-main {
           flex: 1;
           display: flex;
+          flex-direction: column;
           overflow: hidden;
-          height: calc(100vh - 60px);
+          height: calc(100vh - 60px - 48px);
         }
 
-        /* Left Column: Chat Container */
-        .hf-chat-container {
-          width: 58%;
-          border-right: 1px solid rgba(255, 255, 255, 0.05);
-          display: flex;
-          flex-direction: column;
-          background: #06090f;
-        }
-
-        /* Right Column: Widgets / Stats */
-        .hf-widgets-container {
-          width: 42%;
-          display: flex;
-          flex-direction: column;
-          overflow-y: auto;
-          background: #090d16;
-          padding: 14px;
-          gap: 14px;
-        }
-
-        /* Header Styles */
+        /* Header Styles with Drop Shadow */
         .hf-sidebar-header {
-          height: 60px;
-          background: #0d121f;
-          border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+          height: 54px;
+          background: #282828;
+          border-bottom: 1px solid #3c3c3c;
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding: 0 16px;
           flex-shrink: 0;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          z-index: 10;
         }
 
         .hf-header-title {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
+          font-weight: 600;
+          font-size: 14px;
+          color: #eff1f6;
+        }
+        
+        .hf-header-title .hf-logo-accent {
+          color: #ffa116;
           font-weight: 700;
-          font-size: 16px;
-          background: linear-gradient(135deg, #a5b4fc, #818cf8, #6366f1);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          letter-spacing: 0.5px;
         }
 
         .hf-header-actions {
@@ -262,49 +262,50 @@ class HintFlowSidebar {
         .hf-btn-close {
           background: transparent;
           border: none;
-          color: #64748b;
+          color: #8a8a8a;
           cursor: pointer;
-          font-size: 18px;
+          font-size: 16px;
           padding: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 50%;
+          border-radius: 4px;
           transition: all 0.2s;
         }
 
         .hf-btn-close:hover {
           color: white;
-          background: rgba(255,255,255,0.06);
+          background: #333333;
         }
 
-        /* Mode / Tab Bar */
+        /* Mode / Tab Bar (LeetCode panel tabs representation) */
         .hf-tabs {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          padding: 8px;
-          background: #0b0f19;
-          gap: 4px;
-          border-bottom: 1px solid rgba(255,255,255,0.03);
+          grid-template-columns: repeat(2, 1fr);
+          padding: 0;
+          background: #282828;
+          border-bottom: 1px solid #3c3c3c;
+          height: 38px;
+          flex-shrink: 0;
+          z-index: 9;
         }
 
         .hf-tab-btn {
           display: flex;
-          flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 6px 2px;
           background: transparent;
           border: none;
-          color: #475569;
+          color: #8a8a8a;
           font-family: inherit;
-          font-weight: 600;
-          font-size: 10px;
+          font-weight: 500;
+          font-size: 13px;
           cursor: pointer;
-          border-radius: 8px;
-          transition: all 0.2s;
+          transition: all 0.2s ease;
           text-align: center;
-          gap: 3px;
+          gap: 6px;
+          position: relative;
+          height: 100%;
         }
 
         .hf-tab-icon {
@@ -312,15 +313,36 @@ class HintFlowSidebar {
         }
 
         .hf-tab-btn.active {
-          color: #a5b4fc;
-          background: rgba(99, 102, 241, 0.12);
-          border: 1px solid rgba(99, 102, 241, 0.2);
-          box-shadow: 0 0 10px rgba(99, 102, 241, 0.05);
+          color: #ffffff;
+          font-weight: 600;
+        }
+
+        .hf-tab-btn.active::after {
+          content: '';
+          position: absolute;
+          bottom: -1px;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background-color: #ffa116;
         }
 
         .hf-tab-btn:hover:not(.active) {
-          color: #94a3b8;
-          background: rgba(255, 255, 255, 0.03);
+          color: #eff1f6;
+          background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Tab Content Panes */
+        .hf-tab-content {
+          display: none;
+          flex: 1;
+          flex-direction: column;
+          overflow: hidden;
+          background: #1e1e1e;
+        }
+
+        .hf-tab-content.active {
+          display: flex;
         }
 
         /* Chat Messages List */
@@ -330,13 +352,14 @@ class HintFlowSidebar {
           padding: 16px;
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 14px;
+          background: #1e1e1e;
         }
 
         .hf-msg {
           display: flex;
           flex-direction: column;
-          max-width: 90%;
+          max-width: 85%;
         }
 
         .hf-msg.model {
@@ -351,8 +374,8 @@ class HintFlowSidebar {
           display: flex;
           align-items: center;
           gap: 6px;
-          font-size: 11px;
-          color: #475569;
+          font-size: 10px;
+          color: #8a8a8a;
           margin-bottom: 4px;
           padding: 0 4px;
         }
@@ -362,46 +385,73 @@ class HintFlowSidebar {
         }
 
         .hf-msg-avatar {
-          width: 18px;
-          height: 18px;
+          width: 16px;
+          height: 16px;
           border-radius: 50%;
-          background: rgba(99, 102, 241, 0.2);
+          background: #2a2a2a;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #818cf8;
-          font-size: 11px;
-          border: 1px solid rgba(99, 102, 241, 0.2);
+          color: #ffa116;
+          font-size: 9px;
+          border: 1px solid #3c3c3c;
         }
 
         .hf-msg.user .hf-msg-avatar {
-          background: rgba(16, 185, 129, 0.2);
-          color: #34d399;
-          border: 1px solid rgba(16, 185, 129, 0.2);
+          background: #333333;
+          color: #00b8a3;
+          border: 1px solid #4c4c4c;
           order: 2;
         }
 
         .hf-msg-bubble {
-          padding: 10px 14px;
-          border-radius: 14px;
+          padding: 12px 14px;
+          border-radius: 12px;
           font-size: 13px;
-          line-height: 1.5;
+          line-height: 1.6;
           word-break: break-word;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .hf-msg.model .hf-msg-bubble {
-          background: #151d30;
-          color: #e2e8f0;
-          border-top-left-radius: 2px;
-          border: 1px solid rgba(255,255,255,0.03);
+          background: #282828;
+          color: #eff1f6;
+          border: 1px solid #333333;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .hf-msg.user .hf-msg-bubble {
-          background: #25225c;
-          color: #f1f5f9;
-          border-top-right-radius: 2px;
-          border: 1px solid rgba(99, 102, 241, 0.2);
+          background: #2c2a20; /* Elegant LeetCode-matching warm tint */
+          color: #eff1f6;
+          border: 1px solid #524223;
+          box-shadow: 0 4px 12px rgba(255, 161, 22, 0.05);
+        }
+
+        /* Monaco-like Code Blocks inside Messages */
+        .hf-inline-code {
+          background: #1a1a1a !important;
+          color: #ffa116 !important;
+          padding: 2px 5px !important;
+          border-radius: 4px !important;
+          font-family: Menlo, Monaco, Consolas, "Courier New", monospace !important;
+          font-size: 12px !important;
+          border: 1px solid #333333 !important;
+        }
+
+        .hf-code-block {
+          background: #181818;
+          border: 1px solid #333333;
+          border-radius: 8px;
+          padding: 12px;
+          overflow-x: auto;
+          margin: 8px 0;
+          box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hf-code-block code {
+          background: transparent !important;
+          color: #eff1f6 !important;
+          padding: 0 !important;
+          border: none !important;
+          font-family: Menlo, Monaco, Consolas, "Courier New", monospace !important;
+          font-size: 12px !important;
+          line-height: 1.5 !important;
         }
 
         .hf-typing-indicator {
@@ -409,18 +459,19 @@ class HintFlowSidebar {
           align-items: center;
           gap: 4px;
           padding: 10px 14px;
-          background: #151d30;
-          border-radius: 12px;
-          border-top-left-radius: 2px;
+          background: #282828;
+          border-radius: 8px;
           align-self: flex-start;
           margin-bottom: 8px;
-          border: 1px solid rgba(255,255,255,0.03);
+          border: 1px solid #333333;
+          margin-left: 16px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
         .hf-typing-dot {
           width: 6px;
           height: 6px;
-          background: #818cf8;
+          background: #ffa116;
           border-radius: 50%;
           animation: hf-bounce 1.4s infinite ease-in-out both;
         }
@@ -433,319 +484,330 @@ class HintFlowSidebar {
           40% { transform: scale(1.0); }
         }
 
-        /* Input Panel */
+        /* Input Panel with subtle top border shadow */
         .hf-chat-input-area {
           padding: 12px;
-          border-top: 1px solid rgba(255,255,255,0.04);
-          background: #0b0f19;
+          border-top: 1px solid #3c3c3c;
+          background: #2a2a2a;
           display: flex;
           align-items: center;
           gap: 8px;
+          flex-shrink: 0;
+          box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .hf-input-field {
           flex: 1;
-          background: #111625;
-          border: 1px solid rgba(99, 102, 241, 0.2);
-          border-radius: 10px;
+          background: #1a1a1a;
+          border: 1px solid #3c3c3c;
+          border-radius: 6px;
           padding: 10px 12px;
-          color: white;
+          color: #eff1f6;
           font-family: inherit;
           font-size: 13px;
           resize: none;
-          height: 40px;
+          height: 38px;
           outline: none;
-          transition: all 0.2s;
+          transition: all 0.2s ease;
         }
 
         .hf-input-field:focus {
-          border-color: #6366f1;
-          background: #151c30;
-          box-shadow: 0 0 10px rgba(99,102,241,0.15);
+          border-color: #ffa116;
+          background: #202020;
+          box-shadow: 0 0 0 2px rgba(255, 161, 22, 0.15);
         }
 
         .hf-btn-send {
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
-          background: linear-gradient(135deg, #6366f1, #4f46e5);
-          color: white;
-          border: none;
+          width: 38px;
+          height: 38px;
+          border-radius: 6px;
+          background: #2c2c2c;
+          color: #ffa116;
+          border: 1px solid #3c3c3c;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
-          font-size: 16px;
+          transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+          font-size: 15px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .hf-btn-send:hover {
+        .hf-btn-send:hover:not(:disabled) {
+          background: #333333;
+          color: #ffb84d;
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
         .hf-btn-send:disabled {
-          background: #1e293b;
-          color: #475569;
+          color: #4c4c4c;
           cursor: not-allowed;
-          transform: none;
-          box-shadow: none;
         }
 
-        /* Widgets Styling */
-        .hf-widget-card {
-          background: #101626;
-          border: 1px solid rgba(255, 255, 255, 0.04);
-          border-radius: 12px;
-          padding: 12px;
-          display: flex;
-          flex-direction: column;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-
-        .hf-widget-title {
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          color: #475569;
-          font-weight: 700;
-          margin-bottom: 8px;
-        }
-
-        /* Progress Circle widget */
-        .hf-progress-content {
+        /* Interviewer Behavior Selector Styles */
+        .hf-behavior-selector-card {
+          background: #282828;
+          border-bottom: 1px solid #3c3c3c;
+          padding: 8px 16px;
           display: flex;
           align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-shrink: 0;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .hf-behavior-label {
+          font-size: 12px;
+          font-weight: 500;
+          color: #eff1f6;
+        }
+
+        .hf-behavior-options {
+          display: flex;
+          background: #1a1a1a;
+          border: 1px solid #3c3c3c;
+          border-radius: 6px;
+          padding: 3px;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .hf-behavior-btn {
+          background: transparent;
+          border: none;
+          color: #8a8a8a;
+          padding: 4px 10px;
+          font-size: 11px;
+          font-weight: 500;
+          font-family: inherit;
+          cursor: pointer;
+          border-radius: 4px;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hf-behavior-btn.active {
+          background: #2c2c2c;
+          color: #ffa116;
+          font-weight: 600;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .hf-behavior-btn:hover:not(.active) {
+          color: #ffffff;
+        }
+
+        /* Hint Tab Widgets Layout */
+        .hf-hint-widgets-wrapper {
+          background: #282828;
+          border-bottom: 1px solid #3c3c3c;
+          padding: 14px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          flex-shrink: 0;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .hf-hint-top-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           gap: 12px;
         }
 
-        .hf-circular-chart {
-          width: 56px;
-          height: 56px;
-        }
-
-        .hf-circle-bg {
-          fill: none;
-          stroke: #1e293b;
-          stroke-width: 3.2;
-        }
-
-        .hf-circle {
-          fill: none;
-          stroke-width: 3.2;
-          stroke-linecap: round;
-          stroke: url(#hf-progress-gradient);
-          transition: stroke-dasharray 0.5s ease;
-        }
-
-        .hf-percentage {
-          fill: #fff;
-          font-size: 8px;
-          text-anchor: middle;
-          font-weight: 700;
-          font-family: inherit;
-        }
-
-        .hf-progress-text {
-          font-size: 11px;
-          color: #94a3b8;
-          line-height: 1.4;
-          flex: 1;
-        }
-
-        /* Approach widget */
-        .hf-approach-list {
+        .hf-hint-level-badge {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 4px;
         }
 
-        .hf-approach-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 11px;
-          background: rgba(255,255,255,0.01);
-          padding: 6px 8px;
-          border-radius: 6px;
-          border: 1px solid rgba(255,255,255,0.02);
-        }
-
-        .hf-approach-name {
-          font-weight: 600;
-          color: #cbd5e1;
-        }
-
-        .hf-complexity-badge {
-          font-size: 10px;
+        .hf-widget-label {
+          font-size: 9px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #8a8a8a;
           font-weight: 700;
-          padding: 1px 5px;
-          border-radius: 4px;
         }
 
-        .hf-badge-red { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
-        .hf-badge-green { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
-        .hf-badge-grey { background: rgba(100, 116, 139, 0.12); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.2); }
-
-        /* Hint Level Widget */
-        .hf-hint-level-dots {
+        .hf-hint-dots-row {
           display: flex;
           gap: 6px;
-          margin-bottom: 8px;
         }
 
         .hf-hint-dot {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: #182235;
-          border: 1px solid rgba(255,255,255,0.03);
-          transition: all 0.3s;
+          background: #1a1a1a;
+          border: 1px solid #3c3c3c;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .hf-hint-dot.active {
-          background: #6366f1;
-          box-shadow: 0 0 8px rgba(99, 102, 241, 0.6);
-        }
-
-        .hf-hint-text-desc {
-          font-size: 11px;
-          color: #94a3b8;
-          line-height: 1.4;
-          margin-bottom: 8px;
+          background: #ffa116;
+          border-color: #ffa116;
+          box-shadow: 0 0 8px rgba(255, 161, 22, 0.6);
         }
 
         .hf-btn-next-hint {
-          background: linear-gradient(135deg, #4f46e5, #4338ca);
+          background: #ffa116;
+          color: #1a1a1a;
           border: none;
-          color: white;
-          padding: 8px 12px;
+          padding: 8px 16px;
           border-radius: 6px;
           font-size: 11px;
           font-weight: 600;
+          font-family: inherit;
           cursor: pointer;
-          width: 100%;
-          text-align: center;
-          transition: all 0.2s;
-          border: 1px solid rgba(255,255,255,0.05);
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 12px rgba(255, 161, 22, 0.2);
         }
 
         .hf-btn-next-hint:hover {
-          background: #6366f1;
+          background: #ffb84d;
           transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(255, 161, 22, 0.3);
         }
 
-        /* Complexity Check Widget */
-        .hf-complexity-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 8px;
-          margin-bottom: 8px;
-        }
-
-        .hf-comp-box {
-          background: rgba(255,255,255,0.01);
-          padding: 6px;
-          border-radius: 6px;
-          text-align: center;
-          border: 1px solid rgba(255,255,255,0.02);
-        }
-
-        .hf-comp-label {
-          font-size: 9px;
-          color: #475569;
-          margin-bottom: 2px;
-        }
-
-        .hf-comp-val {
+        /* Description Line for Hint Text */
+        .hf-hint-desc-container {
           font-size: 11px;
-          font-weight: 700;
+          color: #b3b3b3;
+          line-height: 1.5;
+          border-top: 1px solid #3c3c3c;
+          padding-top: 8px;
+          margin-top: 4px;
         }
 
-        .hf-improvable-row {
+        /* Compact Info card inside Hint Section */
+        .hf-hint-stats-card {
+          background: #1a1a1a;
+          border: 1px solid #3c3c3c;
+          border-radius: 8px;
+          padding: 10px 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .hf-stats-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 10px;
-          color: #64748b;
-          padding-top: 4px;
-          border-top: 1px solid rgba(255,255,255,0.03);
+          font-size: 11px;
         }
 
-        /* Quick Action Buttons Grid */
-        .hf-actions-grid {
+        .hf-stats-label {
+          color: #8a8a8a;
+        }
+
+        .hf-stats-value {
+          font-weight: 500;
+          color: #eff1f6;
+        }
+
+        .hf-complexity-badge {
+          font-size: 9px;
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 4px;
+          letter-spacing: 0.3px;
+        }
+
+        .hf-badge-red { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .hf-badge-green { background: rgba(0, 184, 163, 0.12); color: #00b8a3; border: 1px solid rgba(0, 184, 163, 0.2); }
+        .hf-badge-grey { background: rgba(138, 138, 138, 0.12); color: #8a8a8a; border: 1px solid rgba(138, 138, 138, 0.2); }
+
+        /* Advices Quick Actions Grid inside Hint Section */
+        .hf-advices-section {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .hf-advices-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: repeat(3, 1fr);
           gap: 6px;
         }
 
         .hf-action-btn {
-          background: #111827;
-          border: 1px solid rgba(255, 255, 255, 0.04);
-          color: #94a3b8;
+          background: #1a1a1a;
+          border: 1px solid #3c3c3c;
+          color: #eff1f6;
           padding: 8px 6px;
-          border-radius: 8px;
+          border-radius: 6px;
           cursor: pointer;
           font-family: inherit;
           font-size: 10px;
-          font-weight: 600;
+          font-weight: 500;
           display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 5px;
-          transition: all 0.2s;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          justify-content: center;
+          gap: 4px;
+          transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+          text-align: center;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .hf-action-btn:hover {
-          background: #1e293b;
-          border-color: rgba(99, 102, 241, 0.3);
-          color: white;
+          background: #242424;
+          border-color: #ffa116;
+          color: #ffffff;
           transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.25);
         }
 
         .hf-action-btn.full-width {
-          grid-column: span 2;
-          justify-content: center;
+          grid-column: span 3;
+          flex-direction: row;
+          padding: 8px;
+          font-size: 11px;
+          font-weight: 600;
         }
 
         /* Bottom Menu Footer */
         .hf-sidebar-footer {
           height: 48px;
-          border-top: 1px solid rgba(255,255,255,0.05);
-          background: #0d121f;
+          border-top: 1px solid #3c3c3c;
+          background: #282828;
           display: flex;
           align-items: center;
           justify-content: space-around;
           padding: 0 16px;
           flex-shrink: 0;
+          box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
         }
 
         .hf-footer-item {
-          font-size: 10px;
-          color: #475569;
+          font-size: 11px;
+          color: #8a8a8a;
           cursor: pointer;
           display: flex;
           align-items: center;
           gap: 4px;
-          font-weight: 600;
-          transition: color 0.2s;
+          font-weight: 500;
+          transition: color 0.2s ease;
         }
 
-        .hf-footer-item:hover, .hf-footer-item.active {
-          color: #818cf8;
+        .hf-footer-item:hover {
+          color: #ffa116;
         }
 
         /* Settings Overlay Modal */
         .hf-settings-overlay {
           position: absolute;
           inset: 0;
-          background: #080c14;
+          background: #1e1e1e;
           z-index: 100;
           display: flex;
           flex-direction: column;
           padding: 20px;
           transform: translateY(100%);
-          transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
         .hf-settings-overlay.open {
@@ -753,11 +815,11 @@ class HintFlowSidebar {
         }
 
         .hf-settings-title {
-          font-size: 16px;
-          font-weight: 700;
+          font-size: 15px;
+          font-weight: 600;
           margin-bottom: 16px;
-          color: white;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
+          color: #ffffff;
+          border-bottom: 1px solid #3c3c3c;
           padding-bottom: 8px;
           display: flex;
           justify-content: space-between;
@@ -768,51 +830,57 @@ class HintFlowSidebar {
           flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 14px;
           overflow-y: auto;
+          padding-right: 4px;
         }
 
         .hf-form-group {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 6px;
         }
 
         .hf-form-label {
           font-size: 11px;
           font-weight: 600;
-          color: #64748b;
+          color: #8a8a8a;
+          letter-spacing: 0.3px;
         }
 
         .hf-form-input, .hf-form-select {
-          background: #111625;
-          border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 8px;
-          padding: 8px 10px;
-          color: white;
+          background: #2a2a2a;
+          border: 1px solid #3c3c3c;
+          border-radius: 6px;
+          padding: 8px 12px;
+          color: #eff1f6;
           font-family: inherit;
           font-size: 12px;
           outline: none;
+          transition: all 0.2s ease;
+          box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
         .hf-form-input:focus, .hf-form-select:focus {
-          border-color: #6366f1;
-          background: #141c2f;
+          border-color: #ffa116;
+          background: #2d2d2d;
+          box-shadow: 0 0 0 2px rgba(255, 161, 22, 0.15);
         }
 
         .hf-settings-footer {
           margin-top: 16px;
           display: flex;
           gap: 8px;
+          flex-shrink: 0;
         }
 
         .hf-btn-save {
           flex: 1;
-          background: linear-gradient(135deg, #4f46e5, #3730a3);
+          background: #ffa116;
           border: none;
-          color: white;
+          color: #1a1a1a;
           padding: 10px;
-          border-radius: 8px;
+          border-radius: 6px;
           font-size: 12px;
           font-weight: 600;
           cursor: pointer;
@@ -821,15 +889,15 @@ class HintFlowSidebar {
         }
 
         .hf-btn-save:hover {
-          background: #6366f1;
+          background: #ffb84d;
         }
 
         .hf-btn-test {
-          background: #1f2937;
-          border: 1px solid rgba(255,255,255,0.05);
-          color: #cbd5e1;
+          background: #2a2a2a;
+          border: 1px solid #3c3c3c;
+          color: #eff1f6;
           padding: 10px 14px;
-          border-radius: 8px;
+          border-radius: 6px;
           font-size: 12px;
           font-weight: 600;
           cursor: pointer;
@@ -837,7 +905,7 @@ class HintFlowSidebar {
         }
 
         .hf-btn-test:hover {
-          background: #374151;
+          background: #333333;
           color: white;
         }
 
@@ -853,9 +921,9 @@ class HintFlowSidebar {
       <svg style="width:0; height:0; position:absolute;">
         <defs>
           <linearGradient id="hf-progress-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#fbbf24" />
-            <stop offset="50%" stop-color="#34d399" />
-            <stop offset="100%" stop-color="#6366f1" />
+            <stop offset="0%" stop-color="#ef4743" />
+            <stop offset="50%" stop-color="#ffa116" />
+            <stop offset="100%" stop-color="#00b8a3" />
           </linearGradient>
         </defs>
       </svg>
@@ -868,44 +936,46 @@ class HintFlowSidebar {
         <!-- Sidebar Header -->
         <div class="hf-sidebar-header">
           <div class="hf-header-title">
-            <span>🤖</span> HintFlow AI Mentor
+            <span class="hf-logo-accent">🤖 HintFlow</span> AI Mentor
           </div>
           <div class="hf-header-actions">
             <button class="hf-btn-close" id="close-sidebar-btn" title="Close Sidebar">✕</button>
           </div>
         </div>
 
-        <!-- Sidebar Body Split Layout -->
+        <!-- Tabs Bar -->
+        <div class="hf-tabs">
+          <button class="hf-tab-btn active" data-tab="interviewer">
+            <span class="hf-tab-icon">👤</span>
+            <span>Interviewer</span>
+          </button>
+          <button class="hf-tab-btn" data-tab="hints">
+            <span class="hf-tab-icon">💡</span>
+            <span>Hint</span>
+          </button>
+        </div>
+
+        <!-- Sidebar Body (Single Column Pane) -->
         <div class="hf-sidebar-main">
-          <!-- Left Column: Chat Area -->
-          <div class="hf-chat-container">
-            <!-- Tabs Bar -->
-            <div class="hf-tabs">
-              <button class="hf-tab-btn active" data-tab="interviewer">
-                <span class="hf-tab-icon">👤</span>
-                <span>Interviewer</span>
-              </button>
-              <button class="hf-tab-btn" data-tab="hints">
-                <span class="hf-tab-icon">💡</span>
-                <span>Hints</span>
-              </button>
-              <button class="hf-tab-btn" data-tab="review">
-                <span class="hf-tab-icon">🔍</span>
-                <span>Review</span>
-              </button>
-              <button class="hf-tab-btn" data-tab="insights">
-                <span class="hf-tab-icon">✨</span>
-                <span>Insights</span>
-              </button>
+          <!-- Tab 1: Interviewer Section -->
+          <div class="hf-tab-content active" id="tab-content-interviewer">
+            <!-- Interviewer Behavior selector inside this tab -->
+            <div class="hf-behavior-selector-card">
+              <span class="hf-behavior-label">Interviewer Behavior:</span>
+              <div class="hf-behavior-options">
+                <button class="hf-behavior-btn active" data-persona="interviewer">Challenger</button>
+                <button class="hf-behavior-btn" data-persona="mentor">Coach</button>
+                <button class="hf-behavior-btn" data-persona="socratic">Socratic</button>
+              </div>
             </div>
 
             <!-- Messages Log -->
-            <div class="hf-chat-messages" id="chat-messages-log">
+            <div class="hf-chat-messages" id="chat-messages-log-interviewer">
               <!-- Messages will be rendered here dynamically -->
             </div>
 
             <!-- Typing indicator -->
-            <div class="hf-typing-indicator" style="display: none;" id="typing-indicator">
+            <div class="hf-typing-indicator" style="display: none;" id="typing-indicator-interviewer">
               <span class="hf-typing-dot"></span>
               <span class="hf-typing-dot"></span>
               <span class="hf-typing-dot"></span>
@@ -913,85 +983,89 @@ class HintFlowSidebar {
 
             <!-- Input area -->
             <div class="hf-chat-input-area">
-              <textarea class="hf-input-field" placeholder="Type your response here..." id="chat-textarea-input"></textarea>
-              <button class="hf-btn-send" id="btn-send-message" title="Send Message">➤</button>
+              <textarea class="hf-input-field" placeholder="Type your response to the interviewer..." id="chat-textarea-input-interviewer"></textarea>
+              <button class="hf-btn-send" id="btn-send-message-interviewer" title="Send Message">➤</button>
             </div>
           </div>
 
-          <!-- Right Column: Stats Panel -->
-          <div class="hf-widgets-container">
-            <!-- Progress Ring Widget -->
-            <div class="hf-widget-card">
-              <div class="hf-widget-title">Progress</div>
-              <div class="hf-progress-content">
-                <svg viewBox="0 0 36 36" class="hf-circular-chart">
-                  <path class="hf-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  <path class="hf-circle" id="progress-svg-ring" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  <text x="18" y="20.35" class="hf-percentage" id="progress-text-val">0%</text>
-                </svg>
-                <div class="hf-progress-text" id="progress-text-desc">Start solving the problem to analyze your progress.</div>
+          <!-- Tab 2: Hint Section -->
+          <div class="hf-tab-content" id="tab-content-hints">
+            <!-- Widgets wrapper at the top -->
+            <div class="hf-hint-widgets-wrapper">
+              <div class="hf-hint-top-row">
+                <div class="hf-hint-level-badge">
+                  <span class="hf-widget-label" id="hint-level-title-label">Hint Level: 0/5</span>
+                  <div class="hf-hint-dots-row" id="hint-level-dots-container">
+                    <span class="hf-hint-dot"></span>
+                    <span class="hf-hint-dot"></span>
+                    <span class="hf-hint-dot"></span>
+                    <span class="hf-hint-dot"></span>
+                    <span class="hf-hint-dot"></span>
+                  </div>
+                </div>
+                <button class="hf-btn-next-hint" id="btn-request-next-hint">Next Hint</button>
+              </div>
+
+              <!-- Compact description line for hint text -->
+              <div class="hf-hint-desc-container" id="hint-level-desc-text">
+                No hints requested yet.
+              </div>
+
+              <!-- Stats & Complexity Card -->
+              <div class="hf-hint-stats-card">
+                <div class="hf-stats-row">
+                  <span class="hf-stats-label">Approach (Current):</span>
+                  <span class="hf-stats-value" id="approach-current-val">None</span>
+                </div>
+                <div class="hf-stats-row">
+                  <span class="hf-stats-label">Approach (Better):</span>
+                  <span class="hf-stats-value" id="approach-better-val">Not analyzed</span>
+                </div>
+                <div class="hf-stats-row">
+                  <span class="hf-stats-label">Time Complexity:</span>
+                  <span class="hf-stats-value" id="complexity-time-val">-</span>
+                </div>
+                <div class="hf-stats-row">
+                  <span class="hf-stats-label">Space Complexity:</span>
+                  <span class="hf-stats-value" id="complexity-space-val">-</span>
+                </div>
+                <div class="hf-stats-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px; margin-top: 4px;">
+                  <span class="hf-stats-label">Can improve?</span>
+                  <span id="complexity-improvable-badge" class="hf-complexity-badge hf-badge-grey">N/A</span>
+                </div>
+              </div>
+
+              <!-- Emojis & Advices Quick Actions Grid -->
+              <div class="hf-advices-section">
+                <span class="hf-widget-label">Get Advice On:</span>
+                <div class="hf-advices-grid">
+                  <button class="hf-action-btn" data-action="stuck">😢 Stuck</button>
+                  <button class="hf-action-btn" data-action="wrong">🐞 Wrong Code</button>
+                  <button class="hf-action-btn" data-action="optimize">🚀 Optimize</button>
+                  <button class="hf-action-btn" data-action="error">⚠️ Error Help</button>
+                  <button class="hf-action-btn" data-action="edge">🛡️ Edge Cases</button>
+                  <button class="hf-action-btn" data-action="dryrun">🎬 Dry Run</button>
+                  <button class="hf-action-btn full-width" data-action="ask">💬 Ask Anything (Type below)</button>
+                </div>
               </div>
             </div>
 
-            <!-- Approach Widget -->
-            <div class="hf-widget-card">
-              <div class="hf-widget-title">Approach</div>
-              <div class="hf-approach-list">
-                <div class="hf-approach-item">
-                  <span class="hf-approach-name" id="approach-current-val">Brute Force (Current)</span>
-                  <span class="hf-complexity-badge hf-badge-red" id="approach-current-complexity">O(n²)</span>
-                </div>
-                <div class="hf-approach-item">
-                  <span class="hf-approach-name" id="approach-better-val">Better Approach</span>
-                  <span class="hf-complexity-badge hf-badge-green" id="approach-better-complexity">O(n)</span>
-                </div>
-              </div>
+            <!-- Messages Log -->
+            <div class="hf-chat-messages" id="chat-messages-log-hints">
+              <!-- Messages will be rendered here dynamically -->
             </div>
 
-            <!-- Hint Level Widget -->
-            <div class="hf-widget-card">
-              <div class="hf-widget-title">Hint Level</div>
-              <div class="hf-hint-level-dots" id="hint-level-dots-container">
-                <span class="hf-hint-dot"></span>
-                <span class="hf-hint-dot"></span>
-                <span class="hf-hint-dot"></span>
-                <span class="hf-hint-dot"></span>
-                <span class="hf-hint-dot"></span>
-              </div>
-              <div class="hf-hint-text-desc" id="hint-level-desc-text">
-                Think about storing information from numbers you've already seen.
-              </div>
-              <button class="hf-btn-next-hint" id="btn-request-next-hint">Next Hint</button>
+            <!-- Typing indicator -->
+            <div class="hf-typing-indicator" style="display: none;" id="typing-indicator-hints">
+              <span class="hf-typing-dot"></span>
+              <span class="hf-typing-dot"></span>
+              <span class="hf-typing-dot"></span>
             </div>
 
-            <!-- Complexity check widget -->
-            <div class="hf-widget-card">
-              <div class="hf-widget-title">Complexity (Your Code)</div>
-              <div class="hf-complexity-grid">
-                <div class="hf-comp-box">
-                  <div class="hf-comp-label">Time</div>
-                  <div class="hf-comp-val" id="complexity-time-val">-</div>
-                </div>
-                <div class="hf-comp-box">
-                  <div class="hf-comp-label">Space</div>
-                  <div class="hf-comp-val" id="complexity-space-val">-</div>
-                </div>
-              </div>
-              <div class="hf-improvable-row">
-                <span>Can be improved?</span>
-                <span id="complexity-improvable-badge" class="hf-complexity-badge hf-badge-grey">N/A</span>
-              </div>
-            </div>
-
-            <!-- Quick Action Grid -->
-            <div class="hf-actions-grid">
-              <button class="hf-action-btn" data-action="stuck">😢 I'm Stuck</button>
-              <button class="hf-action-btn" data-action="wrong">🐞 Code is Wrong</button>
-              <button class="hf-action-btn" data-action="optimize">🚀 Optimize</button>
-              <button class="hf-action-btn" data-action="error">⚠️ Explain Error</button>
-              <button class="hf-action-btn" data-action="edge">🛡️ Edge Cases</button>
-              <button class="hf-action-btn" data-action="dryrun">🎬 Dry Run</button>
-              <button class="hf-action-btn full-width" data-action="ask">💬 Ask Anything</button>
+            <!-- Input area -->
+            <div class="hf-chat-input-area">
+              <textarea class="hf-input-field" placeholder="Ask HintFlow tutor anything about the problem..." id="chat-textarea-input-hints"></textarea>
+              <button class="hf-btn-send" id="btn-send-message-hints" title="Send Message">➤</button>
             </div>
           </div>
         </div>
@@ -1022,8 +1096,8 @@ class HintFlowSidebar {
             <div class="hf-form-group" id="settings-gemini-key-group">
               <label class="hf-form-label">Google AI Studio API Key</label>
               <input type="password" class="hf-form-input" placeholder="AIzaSy..." id="settings-gemini-key-input" />
-              <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
-                You can get your free API key from Google AI Studio. It is stored securely in your browser and never leaves your machine.
+              <div style="font-size: 10px; color: #8a8a8a; margin-top: 2px;">
+                You can get your free API key from Google AI Studio. It is stored securely in your browser.
               </div>
             </div>
 
@@ -1031,7 +1105,7 @@ class HintFlowSidebar {
               <label class="hf-form-label">Gemini Model</label>
               <select class="hf-form-select" id="settings-gemini-model-select">
                 <option value="gemini-3.5-flash">Gemini 3.5 Flash (Advanced)</option>
-                <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended - Fast)</option>
+                <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
                 <option value="gemini-2.5-pro">Gemini 2.5 Pro (Thorough)</option>
                 <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
               </select>
@@ -1040,8 +1114,8 @@ class HintFlowSidebar {
             <div class="hf-form-group" id="settings-groq-key-group">
               <label class="hf-form-label">Groq API Key</label>
               <input type="password" class="hf-form-input" placeholder="gsk_..." id="settings-groq-key-input" />
-              <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
-                Get your free API key from console.groq.com. It is stored securely in your browser and never leaves your machine.
+              <div style="font-size: 10px; color: #8a8a8a; margin-top: 2px;">
+                Get your free API key from console.groq.com.
               </div>
             </div>
 
@@ -1094,12 +1168,24 @@ class HintFlowSidebar {
       });
     });
 
-    // Send message on Enter or Click
-    const textInput = shadow.querySelector('#chat-textarea-input');
-    const sendBtn = shadow.querySelector('#btn-send-message');
+    // Send message on Enter or Click for Interviewer tab
+    const textInputInterviewer = shadow.querySelector('#chat-textarea-input-interviewer');
+    const sendBtnInterviewer = shadow.querySelector('#btn-send-message-interviewer');
     
-    sendBtn.addEventListener('click', () => this.handleUserSendMessage());
-    textInput.addEventListener('keydown', (e) => {
+    sendBtnInterviewer.addEventListener('click', () => this.handleUserSendMessage());
+    textInputInterviewer.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.handleUserSendMessage();
+      }
+    });
+
+    // Send message on Enter or Click for Hints tab
+    const textInputHints = shadow.querySelector('#chat-textarea-input-hints');
+    const sendBtnHints = shadow.querySelector('#btn-send-message-hints');
+    
+    sendBtnHints.addEventListener('click', () => this.handleUserSendMessage());
+    textInputHints.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         this.handleUserSendMessage();
@@ -1128,8 +1214,25 @@ class HintFlowSidebar {
         } else if (action === 'dryrun') {
           this.triggerQuickAction('dryrun', "Can you dry run my code with a simple test case to show how it executes?");
         } else if (action === 'ask') {
-          textInput.focus();
+          textInputHints.focus();
         }
+      });
+    });
+
+    // Interviewer Behavior selector buttons
+    shadow.querySelectorAll('.hf-behavior-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const persona = e.currentTarget.dataset.persona;
+        await this.saveSettings({ persona });
+        this.updateBehaviorSelector();
+        
+        // Print a small system message in the Interviewer chat
+        this.histories.interviewer.push({
+          role: 'model',
+          text: `*System: Interviewer persona switched to **${persona === 'interviewer' ? 'FAANG Interviewer' : persona === 'mentor' ? 'Helpful Coach' : 'Socratic Tutor'}**.*`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+        this.renderMessages();
       });
     });
 
@@ -1162,13 +1265,33 @@ class HintFlowSidebar {
     shadow.querySelector('#footer-menu-notes').addEventListener('click', () => {
       alert("📝 Notes:\nSave your session summaries here to review before real technical interviews!");
     });
+
+    // Sync the selector button state on start
+    this.updateBehaviorSelector();
+  }
+
+  updateBehaviorSelector() {
+    const persona = this.settings.persona;
+    this.shadowRoot.querySelectorAll('.hf-behavior-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.persona === persona);
+    });
+    // Also sync the settings modal dropdown
+    const modalSelect = this.shadowRoot.querySelector('#settings-persona-select');
+    if (modalSelect) {
+      modalSelect.value = persona;
+    }
   }
 
   switchTab(tab) {
     if (this.activeTab === tab) return;
     
+    // Hide old active content pane and tab button
     this.shadowRoot.querySelectorAll('.hf-tab-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    
+    this.shadowRoot.querySelectorAll('.hf-tab-content').forEach(content => {
+      content.classList.toggle('active', content.id === `tab-content-${tab}`);
     });
     
     this.activeTab = tab;
@@ -1243,6 +1366,8 @@ class HintFlowSidebar {
 
     await this.saveSettings({ provider, geminiApiKey, geminiModel, groqApiKey, groqModel, backendUrl, persona });
     this.showSettingsStatus("Settings saved successfully!", "green");
+    
+    this.updateBehaviorSelector();
     
     setTimeout(() => {
       this.closeSettings();
@@ -1364,8 +1489,42 @@ class HintFlowSidebar {
     }
   }
 
+  formatMarkdown(text) {
+    if (!text) return "";
+    
+    // 1. Extract and format code blocks (to prevent formatting code contents as markdown)
+    const codeBlocks = [];
+    let tempText = text.replace(/```([a-zA-Z0-9-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+      const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
+      const escapedCode = code
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      codeBlocks.push(`<pre class="hf-code-block"><code class="language-${lang}">${escapedCode}</code></pre>`);
+      return placeholder;
+    });
+
+    // 2. Parse inline text styles (bold, italics, inline code)
+    tempText = tempText
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code class="hf-inline-code">$1</code>');
+
+    // Convert line breaks to <br/>
+    tempText = tempText.replace(/\n/g, '<br/>');
+
+    // 3. Put code blocks back
+    codeBlocks.forEach((blockHtml, index) => {
+      tempText = tempText.replace(`__CODE_BLOCK_${index}__`, blockHtml);
+    });
+
+    return tempText;
+  }
+
   renderMessages() {
-    const log = this.shadowRoot.querySelector('#chat-messages-log');
+    const logId = `#chat-messages-log-${this.activeTab === 'hints' ? 'hints' : 'interviewer'}`;
+    const log = this.shadowRoot.querySelector(logId);
+    if (!log) return;
     log.innerHTML = '';
     
     const messages = this.histories[this.activeTab];
@@ -1374,24 +1533,28 @@ class HintFlowSidebar {
       msgEl.className = `hf-msg ${msg.role === 'model' ? 'model' : 'user'}`;
       
       const isModel = msg.role === 'model';
+      const isSystem = msg.text.startsWith('*System:');
+      
       const name = isModel ? (this.activeTab === 'interviewer' ? 'Interviewer' : 'AI Tutor') : 'You';
       const avatar = isModel ? '🤖' : '👤';
       
-      // Basic markdown replacement for paragraphs and bold/italics
-      let formattedText = msg.text
-        .replace(/\n/g, '<br/>')
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-        .replace(/`([^`]+)`/g, '<code style="background: rgba(255,255,255,0.08); padding: 2px 4px; border-radius: 4px;">$1</code>');
+      let formattedText = this.formatMarkdown(msg.text);
 
-      msgEl.innerHTML = `
-        <div class="hf-msg-header">
-          <span class="hf-msg-avatar">${avatar}</span>
-          <span class="hf-msg-name">${name}</span>
-          <span class="hf-msg-time">${msg.time}</span>
-        </div>
-        <div class="hf-msg-bubble">${formattedText}</div>
-      `;
+      if (isSystem) {
+        msgEl.style.alignSelf = 'center';
+        msgEl.style.maxWidth = '95%';
+        msgEl.style.opacity = '0.8';
+        msgEl.innerHTML = `<div style="font-size: 11px; font-style: italic; background: #262626; padding: 8px 14px; border-radius: 8px; border: 1px solid #3c3c3c; color: #ffa116; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">${formattedText.replace(/\*System:\s*/i, '')}</div>`;
+      } else {
+        msgEl.innerHTML = `
+          <div class="hf-msg-header">
+            <span class="hf-msg-avatar">${avatar}</span>
+            <span class="hf-msg-name">${name}</span>
+            <span class="hf-msg-time">${msg.time}</span>
+          </div>
+          <div class="hf-msg-bubble">${formattedText}</div>
+        `;
+      }
       log.appendChild(msgEl);
     });
 
@@ -1404,69 +1567,61 @@ class HintFlowSidebar {
   updateWidgets() {
     const shadow = this.shadowRoot;
     
-    // 1. Progress circle
-    const progressRing = shadow.querySelector('#progress-svg-ring');
-    const progressText = shadow.querySelector('#progress-text-val');
-    const progressDesc = shadow.querySelector('#progress-text-desc');
-    
-    const percent = Math.min(100, Math.max(0, this.widgetState.progress));
-    progressRing.style.strokeDasharray = `${percent}, 100`;
-    progressText.textContent = `${percent}%`;
-    progressDesc.textContent = this.widgetState.progressDesc || "You're making progress!";
-
-    // 2. Approach list
-    shadow.querySelector('#approach-current-val').textContent = this.widgetState.currentApproach;
-    shadow.querySelector('#approach-better-val').textContent = this.widgetState.betterApproach;
-    
-    // Match complexity classes
-    const curComp = shadow.querySelector('#approach-current-complexity');
-    curComp.textContent = this.widgetState.timeComplexity;
-    if (this.widgetState.timeComplexity.includes('n²')) {
-      curComp.className = "hf-complexity-badge hf-badge-red";
-    } else if (this.widgetState.timeComplexity.includes('n log') || this.widgetState.timeComplexity.includes('n')) {
-      curComp.className = "hf-complexity-badge hf-badge-green";
-    } else {
-      curComp.className = "hf-complexity-badge hf-badge-grey";
-    }
-
-    const betComp = shadow.querySelector('#approach-better-complexity');
-    if (this.widgetState.betterApproach.toLowerCase().includes('optimal') || this.widgetState.betterApproach.toLowerCase().includes('none')) {
-      betComp.textContent = 'Optimal';
-      betComp.className = "hf-complexity-badge hf-badge-green";
-    } else {
-      betComp.textContent = 'Faster';
-      betComp.className = "hf-complexity-badge hf-badge-grey";
-    }
-
-    // 3. Hint Level Dots
+    // 1. Hint Level Dots
     const dotsContainer = shadow.querySelector('#hint-level-dots-container');
-    dotsContainer.innerHTML = '';
-    const activeLevel = Math.min(5, Math.max(0, this.widgetState.hintLevel));
-    
-    for (let i = 1; i <= 5; i++) {
-      const dot = document.createElement('span');
-      dot.className = `hf-hint-dot ${i <= activeLevel ? 'active' : ''}`;
-      dotsContainer.appendChild(dot);
+    if (dotsContainer) {
+      dotsContainer.innerHTML = '';
+      const activeLevel = Math.min(5, Math.max(0, this.widgetState.hintLevel));
+      
+      const titleLabel = shadow.querySelector('#hint-level-title-label');
+      if (titleLabel) {
+        titleLabel.textContent = `Hint Level: ${activeLevel}/5`;
+      }
+      
+      for (let i = 1; i <= 5; i++) {
+        const dot = document.createElement('span');
+        dot.className = `hf-hint-dot ${i <= activeLevel ? 'active' : ''}`;
+        dotsContainer.appendChild(dot);
+      }
     }
     
-    shadow.querySelector('#hint-level-desc-text').textContent = this.widgetState.hintText;
+    const hintDesc = shadow.querySelector('#hint-level-desc-text');
+    if (hintDesc) hintDesc.textContent = this.widgetState.hintText;
 
-    // 4. Complexity boxes
-    shadow.querySelector('#complexity-time-val').textContent = this.widgetState.timeComplexity;
-    shadow.querySelector('#complexity-space-val').textContent = this.widgetState.spaceComplexity;
+    // 2. Approach list / stats
+    const curVal = shadow.querySelector('#approach-current-val');
+    if (curVal) curVal.textContent = this.widgetState.currentApproach;
+    
+    const betVal = shadow.querySelector('#approach-better-val');
+    if (betVal) {
+      const progressText = this.widgetState.progress > 0 ? ` (${this.widgetState.progress}% Done)` : '';
+      betVal.textContent = `${this.widgetState.betterApproach}${progressText}`;
+    }
+    
+    // 3. Complexity boxes
+    const timeVal = shadow.querySelector('#complexity-time-val');
+    if (timeVal) timeVal.textContent = this.widgetState.timeComplexity;
+    
+    const spaceVal = shadow.querySelector('#complexity-space-val');
+    if (spaceVal) spaceVal.textContent = this.widgetState.spaceComplexity;
     
     const improvBadge = shadow.querySelector('#complexity-improvable-badge');
-    if (this.widgetState.canImprove) {
-      improvBadge.textContent = "Yes ▲";
-      improvBadge.className = "hf-complexity-badge hf-badge-red";
-    } else {
-      improvBadge.textContent = "Optimal";
-      improvBadge.className = "hf-complexity-badge hf-badge-green";
+    if (improvBadge) {
+      if (this.widgetState.canImprove) {
+        improvBadge.textContent = "Yes ▲";
+        improvBadge.className = "hf-complexity-badge hf-badge-red";
+      } else {
+        improvBadge.textContent = "Optimal";
+        improvBadge.className = "hf-complexity-badge hf-badge-green";
+      }
     }
   }
 
   async handleUserSendMessage() {
-    const textInput = this.shadowRoot.querySelector('#chat-textarea-input');
+    const suffix = this.activeTab === 'hints' ? 'hints' : 'interviewer';
+    const textInput = this.shadowRoot.querySelector(`#chat-textarea-input-${suffix}`);
+    if (!textInput) return;
+    
     const userText = textInput.value.trim();
     if (!userText || this.isResponding) return;
 
@@ -1500,18 +1655,21 @@ class HintFlowSidebar {
 
   setResponding(state) {
     this.isResponding = state;
-    const sendBtn = this.shadowRoot.querySelector('#btn-send-message');
-    const indicator = this.shadowRoot.querySelector('#typing-indicator');
+    const suffix = this.activeTab === 'hints' ? 'hints' : 'interviewer';
+    
+    const sendBtn = this.shadowRoot.querySelector(`#btn-send-message-${suffix}`);
+    const indicator = this.shadowRoot.querySelector(`#typing-indicator-${suffix}`);
+    
+    if (sendBtn) sendBtn.disabled = state;
+    if (indicator) indicator.style.display = state ? 'flex' : 'none';
     
     if (state) {
-      sendBtn.disabled = true;
-      indicator.style.display = 'flex';
-      // scroll to bottom
-      const log = this.shadowRoot.querySelector('#chat-messages-log');
-      log.scrollTop = log.scrollHeight;
-    } else {
-      sendBtn.disabled = false;
-      indicator.style.display = 'none';
+      const log = this.shadowRoot.querySelector(`#chat-messages-log-${suffix}`);
+      if (log) {
+        setTimeout(() => {
+          log.scrollTop = log.scrollHeight;
+        }, 50);
+      }
     }
   }
 
@@ -1534,14 +1692,11 @@ class HintFlowSidebar {
     };
 
     const activeHistory = this.histories[this.activeTab];
-    // Map history to standard Gemini chat structure (role: 'user' | 'model')
-    // Exclude the last message which is the current userPrompt
-    // Filter history to ensure it strictly starts with 'user' and alternates roles
     const historyContext = [];
     let expectedRole = 'user';
     for (const msg of activeHistory.slice(0, -1)) {
       if (historyContext.length === 0 && msg.role === 'model') {
-        continue; // Skip initial welcome message from model to satisfy Gemini requirements
+        continue;
       }
       const role = msg.role === 'model' ? 'model' : 'user';
       if (role === expectedRole) {
@@ -1617,7 +1772,7 @@ class HintFlowSidebar {
     const key = this.settings.geminiApiKey;
     const model = this.settings.geminiModel;
     const persona = this.settings.persona;
-    const mode = this.activeTab; // 'interviewer' | 'hints' | 'review' | 'insights'
+    const mode = this.activeTab; // 'interviewer' | 'hints'
 
     const systemInstruction = `You are HintFlow, a premium mock interviewer and AI coding coach.
 Your goal is to guide the user to solve their coding problem without giving direct code solutions.
@@ -1717,7 +1872,7 @@ Please evaluate the code and conversation, and respond with the required JSON pa
         userPrompt,
         history,
         action,
-        settings: this.settings
+        settings: { ...this.settings, mode: this.activeTab }
       })
     });
 
@@ -1774,8 +1929,6 @@ USER MESSAGE: ${userPrompt}
 
 Please evaluate the code and conversation, and respond with the required JSON payload.`;
 
-    // Map history to standard OpenAI roles ('user' or 'assistant')
-    // Exclude the welcome message which has role 'model'
     const messages = [
       { role: 'system', content: systemInstruction }
     ];
@@ -1787,7 +1940,6 @@ Please evaluate the code and conversation, and respond with the required JSON pa
       });
     }
 
-    // Append current prompt
     messages.push({
       role: 'user',
       content: promptText
