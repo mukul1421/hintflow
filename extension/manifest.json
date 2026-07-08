@@ -34,6 +34,11 @@
         "https://leetcode.com/*"
       ],
       "js": [
+        "parser/utils.js",
+        "parser/problemParser.js",
+        "parser/descriptionParser.js",
+        "parser/editorParser.js",
+        "parser/languageParser.js",
         "parser/leetcodeParser.js",
         "ui/sidebar.js",
         "content.js"
