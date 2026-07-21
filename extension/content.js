@@ -8,7 +8,7 @@
   let routeObserverStarted = false;
 
   const isProblemRoute = () =>
-    /^\/problems\/[^/]+(?:\/description)?\/?$/i.test(window.location.pathname);
+    /^\/problems\/[^/]+/i.test(window.location.pathname);
 
   const getParser = () => {
     if (!ParserClass) return null;

@@ -1,6 +1,10 @@
 /* Host-level styles for HintFlow. 
    These run in the main page context to adjust LeetCode's layout when the sidebar is open. */
 
+body {
+  transition: padding-right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 body.hintflow-sidebar-open {
   padding-right: 480px !important;
 }
@@ -9,6 +13,7 @@ body.hintflow-sidebar-open #__next,
 body.hintflow-sidebar-open #root,
 body.hintflow-sidebar-open .main-content {
   max-width: calc(100vw - 480px) !important;
+  transition: max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Base style for the root shadow host container */
@@ -18,5 +23,6 @@ body.hintflow-sidebar-open .main-content {
   right: 0;
   width: 0;
   height: 100vh;
-  z-index: 2147483647; /* Set to maximum possible z-index to stay on top of everything */
+  z-index: 2147483647; /* Maximum possible z-index to stay on top of everything */
+  pointer-events: none; /* Let clicks through unless hitting sidebar elements inside shadow DOM */
 }

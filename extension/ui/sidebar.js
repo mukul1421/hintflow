@@ -6,10 +6,15 @@ class HintFlowSidebar {
     
     // UI state
     this.isOpen = false;
-    this.activeTab = 'interviewer'; // 'interviewer' | 'hints'
+    this.activeTab = 'interviewer'; // 'interviewer' | 'hints' | 'analysis'
     this.currentCode = "";
     this.currentLanguage = "";
     this.isResponding = false;
+    
+    // Logo Asset URL
+    this.logoUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL 
+      ? chrome.runtime.getURL('assets/logo.png') 
+      : 'assets/logo.png';
     
     // Conversation histories
     this.histories = {
@@ -37,7 +42,7 @@ class HintFlowSidebar {
       spaceComplexity: 'N/A',
       canImprove: false,
       hintLevel: 0,
-      hintText: 'Click "Start Session" or write a message to begin.'
+      hintText: 'Click "Next Hint" or write a message to get a step-by-step nudge.'
     };
 
     this.init();
@@ -98,8 +103,8 @@ class HintFlowSidebar {
       window.dispatchEvent(new CustomEvent("hintflow:request-code"));
       
       // Initial welcome message if history is empty
-      const history = this.histories[this.activeTab];
-      if (history.length === 0) {
+      const history = this.histories[this.activeTab === 'analysis' ? 'hints' : this.activeTab];
+      if (history && history.length === 0) {
         this.addWelcomeMessage();
       }
     } else {
@@ -112,14 +117,13 @@ class HintFlowSidebar {
   addWelcomeMessage() {
     let welcome = "";
     if (this.activeTab === 'interviewer') {
-      welcome = "Hello! I am your AI interviewer. Let's practice! Open a LeetCode problem, check out the description, and when you are ready, describe your approach or type your ideas below. I'll evaluate your code and reasoning just like a real interview.";
-      this.widgetState.hintText = "Describe your approach to start the interview.";
+      welcome = "Ready for your mock technical interview? Describe your initial thought process or approach below. I'll ask crisp, intuition-striking questions and give slight direct hints to nudge you forward!";
     } else if (this.activeTab === 'hints') {
-      welcome = "Welcome to Hint mode! I will act as a coding tutor. I'll read the problem and your code, then guide you step-by-step. Let me know when you need a nudge.";
-      this.widgetState.hintText = "Click \"Next Hint\" or ask a question to receive a step-by-step nudge.";
+      welcome = "Welcome to **Hint Mode**! Click \"Next Hint\" above or ask any question to receive progressive, step-by-step conceptual nudges.";
     }
     
-    this.histories[this.activeTab].push({
+    const targetTab = this.activeTab === 'analysis' ? 'hints' : this.activeTab;
+    this.histories[targetTab].push({
       role: 'model',
       text: welcome,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -131,12 +135,13 @@ class HintFlowSidebar {
   render() {
     this.shadowRoot.innerHTML = `
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
         
         :host {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           color: #eff1f6;
           box-sizing: border-box;
+          pointer-events: auto;
         }
 
         * {
@@ -145,57 +150,95 @@ class HintFlowSidebar {
           scrollbar-color: #3d3d3d #1a1a1a;
         }
 
-        /* Webkit Scrollbar */
+        /* Webkit Scrollbar styling */
         ::-webkit-scrollbar {
           width: 6px;
           height: 6px;
         }
         ::-webkit-scrollbar-track {
-          background: #1a1a1a;
+          background: #141414;
         }
         ::-webkit-scrollbar-thumb {
-          background: #3d3d3d;
-          border-radius: 3px;
+          background: #333333;
+          border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-          background: #4d4d4d;
+          background: #4a4a4a;
         }
 
-        /* Floating Toggle Button - Premium Glow Style */
+        /* 3D Levitation floating keyframes */
+        @keyframes hf-float {
+          0%, 100% {
+            transform: translateY(0px) scale(1);
+          }
+          50% {
+            transform: translateY(-5px) scale(1.02);
+          }
+        }
+
+        /* Pulse glowing beacon animation */
+        @keyframes hf-pulse-glow {
+          0%, 100% {
+            box-shadow: 0 0 6px rgba(0, 184, 163, 0.8), 0 0 12px rgba(0, 184, 163, 0.4);
+            transform: scale(1);
+          }
+          50% {
+            box-shadow: 0 0 10px rgba(0, 184, 163, 1), 0 0 20px rgba(0, 184, 163, 0.7);
+            transform: scale(1.15);
+          }
+        }
+
+        /* 3D Floating Toggle Button featuring the custom HintFlow Circuit Logo */
         .hf-floating-toggle {
           position: fixed;
-          bottom: 24px;
-          right: 24px;
-          width: 52px;
-          height: 52px;
+          bottom: 28px;
+          right: 28px;
+          width: 62px;
+          height: 62px;
           border-radius: 50%;
-          background: #1a1a1a;
-          color: #ffa116;
-          border: 1px solid #ffa116;
+          background: radial-gradient(circle at 35% 35%, #2a2a2a 0%, #1c1c1c 70%, #121212 100%);
+          border: 1.5px solid rgba(255, 161, 22, 0.5);
           cursor: pointer;
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 161, 22, 0.25);
+          pointer-events: auto !important;
+          box-shadow: 
+            0 12px 30px rgba(0, 0, 0, 0.7), 
+            inset 0 1.5px 2px rgba(255, 255, 255, 0.35),
+            inset 0 -3px 6px rgba(0, 0, 0, 0.8),
+            0 0 24px rgba(255, 161, 22, 0.35);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 24px;
-          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+          transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
           z-index: 2147483647;
+          animation: hf-float 4s ease-in-out infinite;
+          padding: 10px;
         }
         
         .hf-floating-toggle:hover {
-          transform: scale(1.08) translateY(-2px);
-          background: #222222;
+          transform: scale(1.12) translateY(-4px);
           border-color: #ffb84d;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 161, 22, 0.4);
+          box-shadow: 
+            0 16px 36px rgba(0, 0, 0, 0.8), 
+            inset 0 2px 3px rgba(255, 255, 255, 0.5),
+            inset 0 -3px 6px rgba(0, 0, 0, 0.9),
+            0 0 32px rgba(255, 161, 22, 0.55);
+          animation-play-state: paused;
         }
 
         .hf-floating-toggle.hidden {
-          transform: scale(0);
+          transform: scale(0) rotate(-45deg);
           opacity: 0;
-          pointer-events: none;
+          pointer-events: none !important;
         }
 
-        /* Sidebar Wrapper with Elegant Depth Shadow */
+        .hf-toggle-img {
+          width: 40px;
+          height: 40px;
+          object-fit: contain;
+          filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.7));
+        }
+
+        /* Sidebar Wrapper */
         .hf-sidebar-wrapper {
           position: fixed;
           top: 0;
@@ -204,53 +247,84 @@ class HintFlowSidebar {
           height: 100vh;
           background: #1a1a1a;
           border-left: 1px solid #2e2e2e;
-          box-shadow: -15px 0 45px rgba(0, 0, 0, 0.7);
-          transition: right 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+          box-shadow: -20px 0 50px rgba(0, 0, 0, 0.85);
+          transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
           z-index: 2147483646;
           display: flex;
           flex-direction: column;
+          pointer-events: auto !important;
         }
 
         .hf-sidebar-wrapper.open {
           right: 0;
         }
 
-        /* Inner Layout: Single Column */
+        /* Inner Layout */
         .hf-sidebar-main {
           flex: 1;
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          height: calc(100vh - 60px - 48px);
+          height: calc(100vh - 56px - 44px);
+          background: #141414;
         }
 
-        /* Header Styles with Drop Shadow */
+        /* 3D Sidebar Header */
         .hf-sidebar-header {
-          height: 54px;
-          background: #282828;
-          border-bottom: 1px solid #3c3c3c;
+          height: 56px;
+          background: linear-gradient(180deg, #282828 0%, #202020 100%);
+          border-bottom: 1px solid #333333;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 16px;
+          padding: 0 18px;
           flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
           z-index: 10;
         }
 
         .hf-header-title {
           display: flex;
           align-items: center;
-          gap: 8px;
-          font-weight: 600;
-          font-size: 14px;
+          gap: 10px;
+          font-weight: 700;
+          font-size: 16px;
           color: #eff1f6;
+          letter-spacing: -0.2px;
         }
         
+        .hf-header-logo-img {
+          width: 32px;
+          height: 32px;
+          object-fit: contain;
+          filter: drop-shadow(0 2px 6px rgba(255, 161, 22, 0.5));
+        }
+
         .hf-header-title .hf-logo-accent {
           color: #ffa116;
-          font-weight: 700;
-          letter-spacing: 0.5px;
+          font-weight: 800;
+          letter-spacing: 0.2px;
+        }
+
+        .hf-header-status-beacon {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(0, 184, 163, 0.1);
+          border: 1px solid rgba(0, 184, 163, 0.3);
+          padding: 3px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          color: #00b8a3;
+          font-weight: 600;
+        }
+
+        .hf-status-dot {
+          width: 7px;
+          height: 7px;
+          background: #00b8a3;
+          border-radius: 50%;
+          animation: hf-pulse-glow 2s infinite ease-in-out;
         }
 
         .hf-header-actions {
@@ -260,34 +334,46 @@ class HintFlowSidebar {
         }
 
         .hf-btn-close {
-          background: transparent;
-          border: none;
-          color: #8a8a8a;
+          background: #2a2a2a;
+          border: 1px solid #3a3a3a;
+          color: #9ca3af;
           cursor: pointer;
-          font-size: 16px;
-          padding: 6px;
+          width: 30px;
+          height: 30px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 4px;
-          transition: all 0.2s;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .hf-btn-close:hover {
-          color: white;
-          background: #333333;
+          color: #ffffff;
+          background: #383838;
+          border-color: #4c4c4c;
+          transform: scale(1.05);
         }
 
-        /* Mode / Tab Bar (LeetCode panel tabs representation) */
-        .hf-tabs {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          padding: 0;
-          background: #282828;
-          border-bottom: 1px solid #3c3c3c;
-          height: 38px;
+        /* 3D Segmented Control 3-Tab Switcher */
+        .hf-tabs-container {
+          padding: 8px 14px;
+          background: #202020;
+          border-bottom: 1px solid #333333;
           flex-shrink: 0;
           z-index: 9;
+        }
+
+        .hf-tabs {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          background: #141414;
+          padding: 3px;
+          border-radius: 8px;
+          border: 1px solid #2e2e2e;
+          box-shadow: inset 0 2px 5px rgba(0,0,0,0.6);
+          height: 38px;
+          gap: 2px;
         }
 
         .hf-tab-btn {
@@ -296,40 +382,47 @@ class HintFlowSidebar {
           justify-content: center;
           background: transparent;
           border: none;
-          color: #8a8a8a;
+          color: #9ca3af;
           font-family: inherit;
-          font-weight: 500;
-          font-size: 13px;
+          font-weight: 600;
+          font-size: 12px;
           cursor: pointer;
-          transition: all 0.2s ease;
-          text-align: center;
-          gap: 6px;
+          border-radius: 6px;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          gap: 5px;
           position: relative;
-          height: 100%;
         }
 
-        .hf-tab-icon {
-          font-size: 14px;
+        .hf-tab-icon-svg {
+          width: 14px;
+          height: 14px;
+          fill: currentColor;
         }
 
         .hf-tab-btn.active {
-          color: #ffffff;
-          font-weight: 600;
+          background: linear-gradient(180deg, #323232 0%, #242424 100%);
+          color: #ffa116;
+          font-weight: 700;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 
+            0 3px 8px rgba(0, 0, 0, 0.5), 
+            inset 0 1px 0 rgba(255, 255, 255, 0.15);
         }
 
         .hf-tab-btn.active::after {
           content: '';
           position: absolute;
-          bottom: -1px;
-          left: 0;
-          right: 0;
+          bottom: 2px;
+          width: 18px;
           height: 2px;
           background-color: #ffa116;
+          border-radius: 2px;
+          box-shadow: 0 0 6px rgba(255, 161, 22, 0.8);
         }
 
         .hf-tab-btn:hover:not(.active) {
           color: #eff1f6;
-          background: rgba(255, 255, 255, 0.02);
+          background: rgba(255, 255, 255, 0.04);
         }
 
         /* Tab Content Panes */
@@ -338,28 +431,87 @@ class HintFlowSidebar {
           flex: 1;
           flex-direction: column;
           overflow: hidden;
-          background: #1e1e1e;
+          background: #141414;
         }
 
         .hf-tab-content.active {
           display: flex;
         }
 
-        /* Chat Messages List */
+        /* Persona Selector Card inside Interviewer Tab */
+        .hf-behavior-selector-card {
+          background: linear-gradient(180deg, #242424 0%, #1e1e1e 100%);
+          border-bottom: 1px solid #333333;
+          padding: 10px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-shrink: 0;
+          box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .hf-behavior-label {
+          font-size: 11.5px;
+          font-weight: 600;
+          color: #9ca3af;
+        }
+
+        .hf-behavior-options {
+          display: flex;
+          background: #141414;
+          border: 1px solid #2e2e2e;
+          border-radius: 7px;
+          padding: 3px;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .hf-behavior-btn {
+          background: transparent;
+          border: none;
+          color: #8a8a8a;
+          padding: 5px 10px;
+          font-size: 11px;
+          font-weight: 600;
+          font-family: inherit;
+          cursor: pointer;
+          border-radius: 5px;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hf-behavior-btn.active {
+          background: linear-gradient(180deg, #383838 0%, #2a2a2a 100%);
+          color: #ffa116;
+          font-weight: 700;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.12);
+        }
+
+        .hf-behavior-btn:hover:not(.active) {
+          color: #ffffff;
+        }
+
+        /* Full Height Chat Stream */
         .hf-chat-messages {
           flex: 1;
           overflow-y: auto;
           padding: 16px;
           display: flex;
           flex-direction: column;
-          gap: 14px;
-          background: #1e1e1e;
+          gap: 16px;
+          background: #141414;
         }
 
         .hf-msg {
           display: flex;
           flex-direction: column;
-          max-width: 85%;
+          max-width: 88%;
+          animation: hf-fadeIn 0.25s ease-out;
+        }
+
+        @keyframes hf-fadeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         .hf-msg.model {
@@ -374,9 +526,10 @@ class HintFlowSidebar {
           display: flex;
           align-items: center;
           gap: 6px;
-          font-size: 10px;
+          font-size: 11px;
+          font-weight: 600;
           color: #8a8a8a;
-          margin-bottom: 4px;
+          margin-bottom: 5px;
           padding: 0 4px;
         }
 
@@ -385,63 +538,114 @@ class HintFlowSidebar {
         }
 
         .hf-msg-avatar {
-          width: 16px;
-          height: 16px;
+          width: 20px;
+          height: 20px;
           border-radius: 50%;
-          background: #2a2a2a;
+          background: #242424;
           display: flex;
           align-items: center;
           justify-content: center;
           color: #ffa116;
-          font-size: 9px;
-          border: 1px solid #3c3c3c;
+          font-size: 10px;
+          border: 1px solid #383838;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hf-msg-avatar svg {
+          width: 12px;
+          height: 12px;
+          fill: currentColor;
         }
 
         .hf-msg.user .hf-msg-avatar {
-          background: #333333;
+          background: #2a2a2a;
           color: #00b8a3;
-          border: 1px solid #4c4c4c;
+          border: 1px solid #3c3c3c;
           order: 2;
         }
 
+        /* 3D Glassmorphic Chat Bubbles */
         .hf-msg-bubble {
-          padding: 12px 14px;
+          padding: 13px 16px;
           border-radius: 12px;
           font-size: 13px;
           line-height: 1.6;
           word-break: break-word;
-          background: #282828;
+          background: #222222;
           color: #eff1f6;
-          border: 1px solid #333333;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          border: 1px solid #303030;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+        }
+
+        .hf-msg.model .hf-msg-bubble {
+          border-left: 3px solid #ffa116;
+          background: linear-gradient(135deg, #242424 0%, #1e1e1e 100%);
         }
 
         .hf-msg.user .hf-msg-bubble {
-          background: #2c2a20; /* Elegant LeetCode-matching warm tint */
+          background: linear-gradient(135deg, #2e2617 0%, #221d12 100%);
           color: #eff1f6;
           border: 1px solid #524223;
-          box-shadow: 0 4px 12px rgba(255, 161, 22, 0.05);
+          border-top: 1px solid rgba(255, 161, 22, 0.3);
+          box-shadow: 0 4px 14px rgba(255, 161, 22, 0.08);
+          border-top-right-radius: 2px;
         }
 
-        /* Monaco-like Code Blocks inside Messages */
+        /* Monaco Code Blocks */
         .hf-inline-code {
-          background: #1a1a1a !important;
+          background: #1e1e1e !important;
           color: #ffa116 !important;
-          padding: 2px 5px !important;
+          padding: 2px 6px !important;
           border-radius: 4px !important;
-          font-family: Menlo, Monaco, Consolas, "Courier New", monospace !important;
+          font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace !important;
           font-size: 12px !important;
           border: 1px solid #333333 !important;
         }
 
-        .hf-code-block {
-          background: #181818;
-          border: 1px solid #333333;
+        .hf-code-block-container {
+          position: relative;
+          margin: 10px 0;
           border-radius: 8px;
-          padding: 12px;
+          overflow: hidden;
+          border: 1px solid #333333;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        .hf-code-header {
+          background: #1e1e1e;
+          padding: 6px 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid #2e2e2e;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          color: #8a8a8a;
+        }
+
+        .hf-btn-copy-code {
+          background: #2a2a2a;
+          border: 1px solid #3a3a3a;
+          color: #9ca3af;
+          border-radius: 4px;
+          padding: 3px 8px;
+          font-size: 10.5px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+
+        .hf-btn-copy-code:hover {
+          background: #363636;
+          color: #ffa116;
+          border-color: #ffa116;
+        }
+
+        .hf-code-block {
+          background: #141414;
+          padding: 12px 14px;
           overflow-x: auto;
-          margin: 8px 0;
-          box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+          margin: 0;
         }
 
         .hf-code-block code {
@@ -449,28 +653,29 @@ class HintFlowSidebar {
           color: #eff1f6 !important;
           padding: 0 !important;
           border: none !important;
-          font-family: Menlo, Monaco, Consolas, "Courier New", monospace !important;
+          font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace !important;
           font-size: 12px !important;
-          line-height: 1.5 !important;
+          line-height: 1.55 !important;
         }
 
         .hf-typing-indicator {
           display: flex;
           align-items: center;
-          gap: 4px;
-          padding: 10px 14px;
-          background: #282828;
+          gap: 6px;
+          padding: 10px 16px;
+          background: #222222;
           border-radius: 8px;
           align-self: flex-start;
           margin-bottom: 8px;
-          border: 1px solid #333333;
+          border: 1px solid #303030;
+          border-left: 3px solid #ffa116;
           margin-left: 16px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         }
 
         .hf-typing-dot {
-          width: 6px;
-          height: 6px;
+          width: 7px;
+          height: 7px;
           background: #ffa116;
           border-radius: 50%;
           animation: hf-bounce 1.4s infinite ease-in-out both;
@@ -480,133 +685,96 @@ class HintFlowSidebar {
         .hf-typing-dot:nth-child(2) { animation-delay: -0.16s; }
 
         @keyframes hf-bounce {
-          0%, 80%, 100% { transform: scale(0); }
-          40% { transform: scale(1.0); }
+          0%, 80%, 100% { transform: scale(0.3); opacity: 0.4; }
+          40% { transform: scale(1.1); opacity: 1; }
         }
 
-        /* Input Panel with subtle top border shadow */
+        /* Chat Input Area */
         .hf-chat-input-area {
-          padding: 12px;
-          border-top: 1px solid #3c3c3c;
-          background: #2a2a2a;
+          padding: 14px;
+          border-top: 1px solid #333333;
+          background: linear-gradient(180deg, #222222 0%, #1a1a1a 100%);
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           flex-shrink: 0;
-          box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.3);
         }
 
         .hf-input-field {
           flex: 1;
-          background: #1a1a1a;
-          border: 1px solid #3c3c3c;
-          border-radius: 6px;
-          padding: 10px 12px;
+          background: #141414;
+          border: 1px solid #303030;
+          border-radius: 8px;
+          padding: 10px 14px;
           color: #eff1f6;
           font-family: inherit;
           font-size: 13px;
           resize: none;
-          height: 38px;
+          height: 40px;
           outline: none;
-          transition: all 0.2s ease;
+          transition: all 0.25s ease;
+          box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
         }
 
         .hf-input-field:focus {
           border-color: #ffa116;
-          background: #202020;
-          box-shadow: 0 0 0 2px rgba(255, 161, 22, 0.15);
+          background: #181818;
+          box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 0 0 2px rgba(255, 161, 22, 0.2);
         }
 
         .hf-btn-send {
-          width: 38px;
-          height: 38px;
-          border-radius: 6px;
-          background: #2c2c2c;
+          width: 40px;
+          height: 40px;
+          border-radius: 8px;
+          background: linear-gradient(180deg, #323232 0%, #242424 100%);
           color: #ffa116;
-          border: 1px solid #3c3c3c;
+          border: 1px solid #3a3a3a;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-          font-size: 15px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+
+        .hf-btn-send svg {
+          width: 18px;
+          height: 18px;
+          fill: currentColor;
+          transition: transform 0.2s ease;
         }
 
         .hf-btn-send:hover:not(:disabled) {
-          background: #333333;
-          color: #ffb84d;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+          background: linear-gradient(180deg, #ffa116 0%, #e08b00 100%);
+          color: #141414;
+          border-color: #ffa116;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 14px rgba(255, 161, 22, 0.35);
+        }
+
+        .hf-btn-send:hover:not(:disabled) svg {
+          transform: translateX(1px);
         }
 
         .hf-btn-send:disabled {
-          color: #4c4c4c;
+          color: #4a4a4a;
+          background: #1c1c1c;
+          border-color: #2a2a2a;
           cursor: not-allowed;
+          box-shadow: none;
         }
 
-        /* Interviewer Behavior Selector Styles */
-        .hf-behavior-selector-card {
-          background: #282828;
-          border-bottom: 1px solid #3c3c3c;
-          padding: 8px 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          flex-shrink: 0;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .hf-behavior-label {
-          font-size: 12px;
-          font-weight: 500;
-          color: #eff1f6;
-        }
-
-        .hf-behavior-options {
-          display: flex;
-          background: #1a1a1a;
-          border: 1px solid #3c3c3c;
-          border-radius: 6px;
-          padding: 3px;
-          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .hf-behavior-btn {
-          background: transparent;
-          border: none;
-          color: #8a8a8a;
-          padding: 4px 10px;
-          font-size: 11px;
-          font-weight: 500;
-          font-family: inherit;
-          cursor: pointer;
-          border-radius: 4px;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .hf-behavior-btn.active {
-          background: #2c2c2c;
-          color: #ffa116;
-          font-weight: 600;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .hf-behavior-btn:hover:not(.active) {
-          color: #ffffff;
-        }
-
-        /* Hint Tab Widgets Layout */
-        .hf-hint-widgets-wrapper {
-          background: #282828;
-          border-bottom: 1px solid #3c3c3c;
-          padding: 14px 16px;
+        /* Hint Mode Specific Top Header */
+        .hf-hint-header-strip {
+          background: linear-gradient(180deg, #242424 0%, #1e1e1e 100%);
+          border-bottom: 1px solid #333333;
+          padding: 12px 16px;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 10px;
           flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         }
 
         .hf-hint-top-row {
@@ -619,177 +787,256 @@ class HintFlowSidebar {
         .hf-hint-level-badge {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 5px;
         }
 
         .hf-widget-label {
-          font-size: 9px;
+          font-size: 10px;
           text-transform: uppercase;
-          letter-spacing: 0.08em;
-          color: #8a8a8a;
+          letter-spacing: 0.1em;
+          color: #9ca3af;
           font-weight: 700;
         }
 
         .hf-hint-dots-row {
           display: flex;
-          gap: 6px;
+          gap: 7px;
         }
 
         .hf-hint-dot {
-          width: 8px;
-          height: 8px;
+          width: 12px;
+          height: 12px;
           border-radius: 50%;
-          background: #1a1a1a;
-          border: 1px solid #3c3c3c;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          background: radial-gradient(circle at 35% 35%, #2a2a2a 0%, #141414 100%);
+          border: 1px solid #383838;
+          box-shadow: inset 0 -1px 2px rgba(0,0,0,0.8);
+          transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .hf-hint-dot.active {
-          background: #ffa116;
-          border-color: #ffa116;
-          box-shadow: 0 0 8px rgba(255, 161, 22, 0.6);
+          background: radial-gradient(circle at 35% 35%, #ffd485 0%, #ffa116 60%, #cc7a00 100%);
+          border-color: #ffb84d;
+          box-shadow: 
+            0 0 12px rgba(255, 161, 22, 0.9), 
+            inset 0 1px 2px rgba(255, 255, 255, 0.8),
+            inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+          transform: scale(1.1);
         }
 
         .hf-btn-next-hint {
-          background: #ffa116;
-          color: #1a1a1a;
-          border: none;
+          background: linear-gradient(180deg, #ffa116 0%, #e08b00 100%);
+          color: #141414;
+          border: 1px solid #ffb84d;
+          border-top: 1px solid rgba(255, 255, 255, 0.4);
           padding: 8px 16px;
-          border-radius: 6px;
-          font-size: 11px;
-          font-weight: 600;
+          border-radius: 7px;
+          font-size: 12px;
+          font-weight: 700;
           font-family: inherit;
           cursor: pointer;
           transition: all 0.2s ease;
-          box-shadow: 0 4px 12px rgba(255, 161, 22, 0.2);
+          box-shadow: 0 4px 12px rgba(255, 161, 22, 0.3), inset 0 1px 0 rgba(255,255,255,0.3);
+          display: flex;
+          align-items: center;
+          gap: 6px;
         }
 
         .hf-btn-next-hint:hover {
-          background: #ffb84d;
-          transform: translateY(-1px);
-          box-shadow: 0 6px 16px rgba(255, 161, 22, 0.3);
+          background: linear-gradient(180deg, #ffb84d 0%, #ffa116 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(255, 161, 22, 0.45);
         }
 
-        /* Description Line for Hint Text */
-        .hf-hint-desc-container {
-          font-size: 11px;
-          color: #b3b3b3;
-          line-height: 1.5;
-          border-top: 1px solid #3c3c3c;
-          padding-top: 8px;
-          margin-top: 4px;
-        }
-
-        /* Compact Info card inside Hint Section */
-        .hf-hint-stats-card {
-          background: #1a1a1a;
-          border: 1px solid #3c3c3c;
+        .hf-hint-active-card {
+          font-size: 12px;
+          color: #d1d5db;
+          line-height: 1.55;
+          background: #181818;
+          border: 1px solid #2e2e2e;
           border-radius: 8px;
           padding: 10px 14px;
+          box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        /* Tab 3: Analysis Section Dedicated Styling */
+        .hf-analysis-wrapper {
+          flex: 1;
+          overflow-y: auto;
+          padding: 18px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
-          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+          gap: 16px;
+          background: #141414;
+        }
+
+        .hf-analysis-card {
+          background: linear-gradient(180deg, #242424 0%, #1c1c1c 100%);
+          border: 1px solid #303030;
+          border-radius: 12px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+          transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Interactive Hover Animation on Analysis Cards */
+        .hf-analysis-card:hover {
+          transform: translateY(-3px) scale(1.01);
+          border-color: #ffa116;
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(255, 161, 22, 0.2);
+        }
+
+        .hf-analysis-title-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid #2e2e2e;
+          padding-bottom: 8px;
+        }
+
+        .hf-analysis-card-heading {
+          font-size: 13px;
+          font-weight: 700;
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .hf-analysis-card-heading span {
+          color: #ffa116;
         }
 
         .hf-stats-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 11px;
+          font-size: 12.5px;
+          padding: 4px 0;
         }
 
         .hf-stats-label {
-          color: #8a8a8a;
+          color: #9ca3af;
+          font-weight: 500;
         }
 
         .hf-stats-value {
-          font-weight: 500;
+          font-weight: 700;
           color: #eff1f6;
         }
 
         .hf-complexity-badge {
-          font-size: 9px;
+          font-size: 10.5px;
           font-weight: 700;
-          padding: 2px 6px;
-          border-radius: 4px;
+          padding: 3px 9px;
+          border-radius: 6px;
           letter-spacing: 0.3px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        .hf-badge-red { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
-        .hf-badge-green { background: rgba(0, 184, 163, 0.12); color: #00b8a3; border: 1px solid rgba(0, 184, 163, 0.2); }
-        .hf-badge-grey { background: rgba(138, 138, 138, 0.12); color: #8a8a8a; border: 1px solid rgba(138, 138, 138, 0.2); }
+        .hf-badge-red { 
+          background: rgba(255, 55, 95, 0.15); 
+          color: #ff375f; 
+          border: 1px solid rgba(255, 55, 95, 0.3); 
+        }
+        .hf-badge-green { 
+          background: rgba(0, 184, 163, 0.15); 
+          color: #00b8a3; 
+          border: 1px solid rgba(0, 184, 163, 0.3); 
+        }
+        .hf-badge-grey { 
+          background: rgba(156, 163, 175, 0.15); 
+          color: #9ca3af; 
+          border: 1px solid rgba(156, 163, 175, 0.3); 
+        }
 
-        /* Advices Quick Actions Grid inside Hint Section */
+        /* Progress Bar Animation inside Analysis */
+        .hf-progress-bar-container {
+          width: 100%;
+          height: 6px;
+          background: #141414;
+          border-radius: 3px;
+          overflow: hidden;
+          border: 1px solid #2e2e2e;
+          margin-top: 4px;
+        }
+
+        .hf-progress-bar-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #ff375f, #ffa116, #00b8a3);
+          border-radius: 3px;
+          transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+          width: 0%;
+        }
+
+        /* Quick Assistance Grid inside Analysis Tab */
         .hf-advices-section {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 10px;
         }
 
         .hf-advices-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 6px;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
         }
 
         .hf-action-btn {
-          background: #1a1a1a;
-          border: 1px solid #3c3c3c;
+          background: linear-gradient(180deg, #242424 0%, #1c1c1c 100%);
+          border: 1px solid #303030;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
           color: #eff1f6;
-          padding: 8px 6px;
-          border-radius: 6px;
+          padding: 12px 10px;
+          border-radius: 9px;
           cursor: pointer;
           font-family: inherit;
-          font-size: 10px;
-          font-weight: 500;
+          font-size: 11.5px;
+          font-weight: 600;
           display: flex;
-          flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 4px;
-          transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+          gap: 6px;
+          transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
           text-align: center;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
 
         .hf-action-btn:hover {
-          background: #242424;
+          background: linear-gradient(180deg, #323232 0%, #262626 100%);
           border-color: #ffa116;
           color: #ffffff;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+          transform: translateY(-3px) scale(1.02);
+          box-shadow: 0 8px 16px rgba(0,0,0,0.4), 0 0 12px rgba(255, 161, 22, 0.25);
         }
 
-        .hf-action-btn.full-width {
-          grid-column: span 3;
-          flex-direction: row;
-          padding: 8px;
-          font-size: 11px;
-          font-weight: 600;
+        .hf-action-btn:active {
+          transform: translateY(1px) scale(0.98);
         }
 
         /* Bottom Menu Footer */
         .hf-sidebar-footer {
-          height: 48px;
-          border-top: 1px solid #3c3c3c;
-          background: #282828;
+          height: 44px;
+          border-top: 1px solid #333333;
+          background: #1c1c1c;
           display: flex;
           align-items: center;
           justify-content: space-around;
           padding: 0 16px;
           flex-shrink: 0;
-          box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
         }
 
         .hf-footer-item {
-          font-size: 11px;
-          color: #8a8a8a;
+          font-size: 11.5px;
+          color: #9ca3af;
           cursor: pointer;
           display: flex;
           align-items: center;
-          gap: 4px;
-          font-weight: 500;
+          gap: 5px;
+          font-weight: 600;
           transition: color 0.2s ease;
         }
 
@@ -797,17 +1044,19 @@ class HintFlowSidebar {
           color: #ffa116;
         }
 
-        /* Settings Overlay Modal */
+        /* 3D Glassmorphic Settings Modal */
         .hf-settings-overlay {
           position: absolute;
           inset: 0;
-          background: #1e1e1e;
+          background: rgba(20, 20, 20, 0.94);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
           z-index: 100;
           display: flex;
           flex-direction: column;
-          padding: 20px;
+          padding: 24px;
           transform: translateY(100%);
-          transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+          transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .hf-settings-overlay.open {
@@ -815,12 +1064,12 @@ class HintFlowSidebar {
         }
 
         .hf-settings-title {
-          font-size: 15px;
-          font-weight: 600;
-          margin-bottom: 16px;
+          font-size: 16px;
+          font-weight: 700;
+          margin-bottom: 18px;
           color: #ffffff;
-          border-bottom: 1px solid #3c3c3c;
-          padding-bottom: 8px;
+          border-bottom: 1px solid #333333;
+          padding-bottom: 12px;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -830,7 +1079,7 @@ class HintFlowSidebar {
           flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 16px;
           overflow-y: auto;
           padding-right: 4px;
         }
@@ -842,126 +1091,143 @@ class HintFlowSidebar {
         }
 
         .hf-form-label {
-          font-size: 11px;
-          font-weight: 600;
-          color: #8a8a8a;
+          font-size: 11.5px;
+          font-weight: 700;
+          color: #9ca3af;
           letter-spacing: 0.3px;
         }
 
         .hf-form-input, .hf-form-select {
-          background: #2a2a2a;
-          border: 1px solid #3c3c3c;
-          border-radius: 6px;
-          padding: 8px 12px;
+          background: #181818;
+          border: 1px solid #303030;
+          border-radius: 7px;
+          padding: 10px 14px;
           color: #eff1f6;
           font-family: inherit;
-          font-size: 12px;
+          font-size: 12.5px;
           outline: none;
           transition: all 0.2s ease;
-          box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
         }
 
         .hf-form-input:focus, .hf-form-select:focus {
           border-color: #ffa116;
-          background: #2d2d2d;
-          box-shadow: 0 0 0 2px rgba(255, 161, 22, 0.15);
+          background: #1e1e1e;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 161, 22, 0.2);
         }
 
         .hf-settings-footer {
-          margin-top: 16px;
+          margin-top: 18px;
           display: flex;
-          gap: 8px;
+          gap: 10px;
           flex-shrink: 0;
         }
 
         .hf-btn-save {
           flex: 1;
-          background: #ffa116;
-          border: none;
-          color: #1a1a1a;
-          padding: 10px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 600;
+          background: linear-gradient(180deg, #ffa116 0%, #e08b00 100%);
+          border: 1px solid #ffb84d;
+          color: #141414;
+          padding: 11px;
+          border-radius: 7px;
+          font-size: 12.5px;
+          font-weight: 700;
           cursor: pointer;
           text-align: center;
           transition: all 0.2s;
+          box-shadow: 0 4px 12px rgba(255, 161, 22, 0.3), inset 0 1px 0 rgba(255,255,255,0.3);
         }
 
         .hf-btn-save:hover {
-          background: #ffb84d;
+          background: linear-gradient(180deg, #ffb84d 0%, #ffa116 100%);
+          transform: translateY(-1px);
         }
 
         .hf-btn-test {
-          background: #2a2a2a;
-          border: 1px solid #3c3c3c;
+          background: linear-gradient(180deg, #2c2c2c 0%, #202020 100%);
+          border: 1px solid #3a3a3a;
           color: #eff1f6;
-          padding: 10px 14px;
-          border-radius: 6px;
-          font-size: 12px;
+          padding: 11px 16px;
+          border-radius: 7px;
+          font-size: 12.5px;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
         }
 
         .hf-btn-test:hover {
-          background: #333333;
+          background: #363636;
           color: white;
+          border-color: #4a4a4a;
         }
 
         .hf-settings-status {
-          font-size: 11px;
+          font-size: 12px;
           text-align: center;
-          margin-top: 6px;
+          margin-top: 8px;
           font-weight: 600;
+          padding: 8px;
+          border-radius: 6px;
+          background: rgba(255, 255, 255, 0.05);
         }
       </style>
 
-      <!-- SVG gradients definitions -->
-      <svg style="width:0; height:0; position:absolute;">
-        <defs>
-          <linearGradient id="hf-progress-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#ef4743" />
-            <stop offset="50%" stop-color="#ffa116" />
-            <stop offset="100%" stop-color="#00b8a3" />
-          </linearGradient>
-        </defs>
-      </svg>
+      <!-- 3D Floating Toggle Button featuring the custom HintFlow Circuit Logo -->
+      <button class="hf-floating-toggle" title="Open HintFlow AI Mentor">
+        <img src="${this.logoUrl}" alt="HintFlow Logo" class="hf-toggle-img" />
+      </button>
 
-      <!-- Floating Button (triggers toggle) -->
-      <button class="hf-floating-toggle" title="Open HintFlow AI Mentor">🤖</button>
-
-      <!-- Sidebar Wrapper -->
+      <!-- Sidebar Main Container -->
       <div class="hf-sidebar-wrapper">
-        <!-- Sidebar Header -->
+        <!-- 3D Sidebar Header -->
         <div class="hf-sidebar-header">
           <div class="hf-header-title">
-            <span class="hf-logo-accent">🤖 HintFlow</span> AI Mentor
+            <img src="${this.logoUrl}" alt="HintFlow Logo" class="hf-header-logo-img" />
+            <span><span class="hf-logo-accent">HintFlow</span></span>
           </div>
+          
+          <div class="hf-header-status-beacon" title="AI Service Online">
+            <span class="hf-status-dot"></span>
+            <span>Online</span>
+          </div>
+
           <div class="hf-header-actions">
             <button class="hf-btn-close" id="close-sidebar-btn" title="Close Sidebar">✕</button>
           </div>
         </div>
 
-        <!-- Tabs Bar -->
-        <div class="hf-tabs">
-          <button class="hf-tab-btn active" data-tab="interviewer">
-            <span class="hf-tab-icon">👤</span>
-            <span>Interviewer</span>
-          </button>
-          <button class="hf-tab-btn" data-tab="hints">
-            <span class="hf-tab-icon">💡</span>
-            <span>Hint</span>
-          </button>
+        <!-- 3D Segmented Control 3-Tab Switcher -->
+        <div class="hf-tabs-container">
+          <div class="hf-tabs">
+            <button class="hf-tab-btn active" data-tab="interviewer">
+              <svg class="hf-tab-icon-svg" viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+              <span>Interviewer</span>
+            </button>
+            <button class="hf-tab-btn" data-tab="hints">
+              <svg class="hf-tab-icon-svg" viewBox="0 0 24 24">
+                <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/>
+              </svg>
+              <span>Hint Mode</span>
+            </button>
+            <button class="hf-tab-btn" data-tab="analysis">
+              <svg class="hf-tab-icon-svg" viewBox="0 0 24 24">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-4h5v4zm0-6H7V7h5v4zm6 6h-4V7h4v10z"/>
+              </svg>
+              <span>Analysis</span>
+            </button>
+          </div>
         </div>
 
-        <!-- Sidebar Body (Single Column Pane) -->
+        <!-- Sidebar Body -->
         <div class="hf-sidebar-main">
           <!-- Tab 1: Interviewer Section -->
           <div class="hf-tab-content active" id="tab-content-interviewer">
-            <!-- Interviewer Behavior selector inside this tab -->
+            <!-- Persona Selector Card -->
             <div class="hf-behavior-selector-card">
-              <span class="hf-behavior-label">Interviewer Behavior:</span>
+              <span class="hf-behavior-label">Persona:</span>
               <div class="hf-behavior-options">
                 <button class="hf-behavior-btn active" data-persona="interviewer">Challenger</button>
                 <button class="hf-behavior-btn" data-persona="mentor">Coach</button>
@@ -969,9 +1235,9 @@ class HintFlowSidebar {
               </div>
             </div>
 
-            <!-- Messages Log -->
+            <!-- Full-Height Messages Log -->
             <div class="hf-chat-messages" id="chat-messages-log-interviewer">
-              <!-- Messages will be rendered here dynamically -->
+              <!-- Messages rendered dynamically -->
             </div>
 
             <!-- Typing indicator -->
@@ -983,15 +1249,19 @@ class HintFlowSidebar {
 
             <!-- Input area -->
             <div class="hf-chat-input-area">
-              <textarea class="hf-input-field" placeholder="Type your response to the interviewer..." id="chat-textarea-input-interviewer"></textarea>
-              <button class="hf-btn-send" id="btn-send-message-interviewer" title="Send Message">➤</button>
+              <textarea class="hf-input-field" placeholder="Describe your approach or answer the interviewer..." id="chat-textarea-input-interviewer"></textarea>
+              <button class="hf-btn-send" id="btn-send-message-interviewer" title="Send Message">
+                <svg viewBox="0 0 24 24">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+              </button>
             </div>
           </div>
 
-          <!-- Tab 2: Hint Section -->
+          <!-- Tab 2: Hint Mode Section -->
           <div class="hf-tab-content" id="tab-content-hints">
-            <!-- Widgets wrapper at the top -->
-            <div class="hf-hint-widgets-wrapper">
+            <!-- Hint Level Top Strip -->
+            <div class="hf-hint-header-strip">
               <div class="hf-hint-top-row">
                 <div class="hf-hint-level-badge">
                   <span class="hf-widget-label" id="hint-level-title-label">Hint Level: 0/5</span>
@@ -1003,56 +1273,21 @@ class HintFlowSidebar {
                     <span class="hf-hint-dot"></span>
                   </div>
                 </div>
-                <button class="hf-btn-next-hint" id="btn-request-next-hint">Next Hint</button>
+                <button class="hf-btn-next-hint" id="btn-request-next-hint">
+                  <span>Next Hint</span>
+                  <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-8.29-1.42 1.42L16.86 11H5v2z"/></svg>
+                </button>
               </div>
 
-              <!-- Compact description line for hint text -->
-              <div class="hf-hint-desc-container" id="hint-level-desc-text">
-                No hints requested yet.
-              </div>
-
-              <!-- Stats & Complexity Card -->
-              <div class="hf-hint-stats-card">
-                <div class="hf-stats-row">
-                  <span class="hf-stats-label">Approach (Current):</span>
-                  <span class="hf-stats-value" id="approach-current-val">None</span>
-                </div>
-                <div class="hf-stats-row">
-                  <span class="hf-stats-label">Approach (Better):</span>
-                  <span class="hf-stats-value" id="approach-better-val">Not analyzed</span>
-                </div>
-                <div class="hf-stats-row">
-                  <span class="hf-stats-label">Time Complexity:</span>
-                  <span class="hf-stats-value" id="complexity-time-val">-</span>
-                </div>
-                <div class="hf-stats-row">
-                  <span class="hf-stats-label">Space Complexity:</span>
-                  <span class="hf-stats-value" id="complexity-space-val">-</span>
-                </div>
-                <div class="hf-stats-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px; margin-top: 4px;">
-                  <span class="hf-stats-label">Can improve?</span>
-                  <span id="complexity-improvable-badge" class="hf-complexity-badge hf-badge-grey">N/A</span>
-                </div>
-              </div>
-
-              <!-- Emojis & Advices Quick Actions Grid -->
-              <div class="hf-advices-section">
-                <span class="hf-widget-label">Get Advice On:</span>
-                <div class="hf-advices-grid">
-                  <button class="hf-action-btn" data-action="stuck">😢 Stuck</button>
-                  <button class="hf-action-btn" data-action="wrong">🐞 Wrong Code</button>
-                  <button class="hf-action-btn" data-action="optimize">🚀 Optimize</button>
-                  <button class="hf-action-btn" data-action="error">⚠️ Error Help</button>
-                  <button class="hf-action-btn" data-action="edge">🛡️ Edge Cases</button>
-                  <button class="hf-action-btn" data-action="dryrun">🎬 Dry Run</button>
-                  <button class="hf-action-btn full-width" data-action="ask">💬 Ask Anything (Type below)</button>
-                </div>
+              <!-- Active Hint Card -->
+              <div class="hf-hint-active-card" id="hint-level-desc-text">
+                Click "Next Hint" or write a question below to get started.
               </div>
             </div>
 
-            <!-- Messages Log -->
+            <!-- Full-Height Messages Log under Hint Section -->
             <div class="hf-chat-messages" id="chat-messages-log-hints">
-              <!-- Messages will be rendered here dynamically -->
+              <!-- Messages rendered dynamically -->
             </div>
 
             <!-- Typing indicator -->
@@ -1065,7 +1300,74 @@ class HintFlowSidebar {
             <!-- Input area -->
             <div class="hf-chat-input-area">
               <textarea class="hf-input-field" placeholder="Ask HintFlow tutor anything about the problem..." id="chat-textarea-input-hints"></textarea>
-              <button class="hf-btn-send" id="btn-send-message-hints" title="Send Message">➤</button>
+              <button class="hf-btn-send" id="btn-send-message-hints" title="Send Message">
+                <svg viewBox="0 0 24 24">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab 3: Dedicated Analysis Section -->
+          <div class="hf-tab-content" id="tab-content-analysis">
+            <div class="hf-analysis-wrapper">
+              <!-- Approach Analysis Card -->
+              <div class="hf-analysis-card">
+                <div class="hf-analysis-title-row">
+                  <div class="hf-analysis-card-heading">
+                    💡 Approach <span>Evaluation</span>
+                  </div>
+                  <span class="hf-complexity-badge hf-badge-grey" id="analysis-progress-badge">0% Optimal</span>
+                </div>
+                <div class="hf-stats-row">
+                  <span class="hf-stats-label">Current Approach:</span>
+                  <span class="hf-stats-value" id="approach-current-val">None</span>
+                </div>
+                <div class="hf-stats-row">
+                  <span class="hf-stats-label">Optimal / Target:</span>
+                  <span class="hf-stats-value" id="approach-better-val">Not analyzed</span>
+                </div>
+                <div class="hf-progress-bar-container">
+                  <div class="hf-progress-bar-fill" id="analysis-progress-fill"></div>
+                </div>
+              </div>
+
+              <!-- Time & Space Complexity Card -->
+              <div class="hf-analysis-card">
+                <div class="hf-analysis-title-row">
+                  <div class="hf-analysis-card-heading">
+                    ⚡ Complexity <span>Breakdown</span>
+                  </div>
+                  <span id="complexity-improvable-badge" class="hf-complexity-badge hf-badge-grey">N/A</span>
+                </div>
+                <div class="hf-stats-row">
+                  <span class="hf-stats-label">Time Complexity:</span>
+                  <span class="hf-stats-value" id="complexity-time-val">-</span>
+                </div>
+                <div class="hf-stats-row">
+                  <span class="hf-stats-label">Space Complexity:</span>
+                  <span class="hf-stats-value" id="complexity-space-val">-</span>
+                </div>
+              </div>
+
+              <!-- Quick AI Assistance Action Card Grid -->
+              <div class="hf-analysis-card">
+                <div class="hf-analysis-title-row">
+                  <div class="hf-analysis-card-heading">
+                    🚀 Quick AI <span>Assistance</span>
+                  </div>
+                </div>
+                <div class="hf-advices-section">
+                  <div class="hf-advices-grid">
+                    <button class="hf-action-btn" data-action="stuck">😢 Stuck</button>
+                    <button class="hf-action-btn" data-action="wrong">🐞 Wrong Code</button>
+                    <button class="hf-action-btn" data-action="optimize">🚀 Optimize</button>
+                    <button class="hf-action-btn" data-action="error">⚠️ Error Help</button>
+                    <button class="hf-action-btn" data-action="edge">🛡️ Edge Cases</button>
+                    <button class="hf-action-btn" data-action="dryrun">🎬 Dry Run</button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1077,10 +1379,10 @@ class HintFlowSidebar {
           <span class="hf-footer-item" id="footer-menu-notes">📝 Notes</span>
         </div>
 
-        <!-- Settings Slide-up Modal -->
+        <!-- Settings Slide-up Overlay Modal -->
         <div class="hf-settings-overlay" id="settings-overlay-modal">
           <div class="hf-settings-title">
-            <span>⚙️ Settings</span>
+            <span>⚙️ Settings & API Configuration</span>
             <button class="hf-btn-close" id="close-settings-btn">✕</button>
           </div>
           <div class="hf-settings-form">
@@ -1088,7 +1390,7 @@ class HintFlowSidebar {
               <label class="hf-form-label">API Provider</label>
               <select class="hf-form-select" id="settings-provider-select">
                 <option value="gemini">Google AI Studio (Gemini)</option>
-                <option value="groq">Groq Cloud (Llama/Gemma)</option>
+                <option value="groq">Groq Cloud (Llama / Gemma)</option>
                 <option value="backend">Local Backend Server (Express)</option>
               </select>
             </div>
@@ -1096,9 +1398,6 @@ class HintFlowSidebar {
             <div class="hf-form-group" id="settings-gemini-key-group">
               <label class="hf-form-label">Google AI Studio API Key</label>
               <input type="password" class="hf-form-input" placeholder="AIzaSy..." id="settings-gemini-key-input" />
-              <div style="font-size: 10px; color: #8a8a8a; margin-top: 2px;">
-                You can get your free API key from Google AI Studio. It is stored securely in your browser.
-              </div>
             </div>
 
             <div class="hf-form-group" id="settings-gemini-model-group">
@@ -1114,9 +1413,6 @@ class HintFlowSidebar {
             <div class="hf-form-group" id="settings-groq-key-group">
               <label class="hf-form-label">Groq API Key</label>
               <input type="password" class="hf-form-input" placeholder="gsk_..." id="settings-groq-key-input" />
-              <div style="font-size: 10px; color: #8a8a8a; margin-top: 2px;">
-                Get your free API key from console.groq.com.
-              </div>
             </div>
 
             <div class="hf-form-group" id="settings-groq-model-group">
@@ -1135,11 +1431,11 @@ class HintFlowSidebar {
             </div>
 
             <div class="hf-form-group">
-              <label class="hf-form-label">Mentor Persona</label>
+              <label class="hf-form-label">Default Persona</label>
               <select class="hf-form-select" id="settings-persona-select">
-                <option value="interviewer">FAANG Interviewer (Challenging)</option>
+                <option value="interviewer">FAANG Interviewer (Intuition Questions)</option>
                 <option value="mentor">Helpful Coding Coach (Supportive)</option>
-                <option value="socratic">Socratic Tutor (Asks questions only)</option>
+                <option value="socratic">Socratic Tutor (Questions Only)</option>
               </select>
             </div>
           </div>
@@ -1160,7 +1456,7 @@ class HintFlowSidebar {
     shadow.querySelector('.hf-floating-toggle').addEventListener('click', () => this.toggle());
     shadow.querySelector('#close-sidebar-btn').addEventListener('click', () => this.toggle());
     
-    // Tab switching
+    // 3 Tab switching
     shadow.querySelectorAll('.hf-tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const tab = e.currentTarget.dataset.tab;
@@ -1168,7 +1464,7 @@ class HintFlowSidebar {
       });
     });
 
-    // Send message on Enter or Click for Interviewer tab
+    // Send message for Interviewer tab
     const textInputInterviewer = shadow.querySelector('#chat-textarea-input-interviewer');
     const sendBtnInterviewer = shadow.querySelector('#btn-send-message-interviewer');
     
@@ -1180,7 +1476,7 @@ class HintFlowSidebar {
       }
     });
 
-    // Send message on Enter or Click for Hints tab
+    // Send message for Hints tab
     const textInputHints = shadow.querySelector('#chat-textarea-input-hints');
     const sendBtnHints = shadow.querySelector('#btn-send-message-hints');
     
@@ -1192,81 +1488,90 @@ class HintFlowSidebar {
       }
     });
 
-    // Request Next Hint
+    // Request Next Hint with fixed single-increment logic
     shadow.querySelector('#btn-request-next-hint').addEventListener('click', () => {
-      this.triggerQuickAction('stuck', 'Please provide the next progressive hint.');
+      let currentLevel = this.widgetState.hintLevel || 0;
+      let nextLevel = Math.min(5, currentLevel + 1);
+      this.triggerQuickAction('stuck', `Please provide Hint Level ${nextLevel}/5.`);
     });
 
     // Quick Actions Click
     shadow.querySelectorAll('.hf-action-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const action = e.currentTarget.dataset.action;
-        if (action === 'stuck') {
-          this.triggerQuickAction('stuck', "I'm stuck. Can you give me a conceptual hint?");
-        } else if (action === 'wrong') {
-          this.triggerQuickAction('wrong', "My code is wrong/failing. Can you help me find the bug without giving the solution?");
-        } else if (action === 'optimize') {
-          this.triggerQuickAction('optimize', "Can you explain how I can optimize my approach?");
-        } else if (action === 'error') {
-          this.triggerQuickAction('error', "I'm encountering an error. Let me share my code, can you explain what is wrong?");
-        } else if (action === 'edge') {
-          this.triggerQuickAction('edge', "What edge cases should I test my current code against?");
-        } else if (action === 'dryrun') {
-          this.triggerQuickAction('dryrun', "Can you dry run my code with a simple test case to show how it executes?");
-        } else if (action === 'ask') {
-          textInputHints.focus();
+        let promptText = "";
+        if (action === 'stuck') promptText = "I'm stuck. Can you give me a conceptual hint?";
+        else if (action === 'wrong') promptText = "My code is failing. Can you help me find the bug without revealing the solution?";
+        else if (action === 'optimize') promptText = "Can you explain how I can optimize my approach?";
+        else if (action === 'error') promptText = "I'm encountering an error. Can you explain what is wrong?";
+        else if (action === 'edge') promptText = "What edge cases should I test my current code against?";
+        else if (action === 'dryrun') promptText = "Can you dry run my code step-by-step with a test case?";
+        
+        if (promptText) {
+          // Switch to Hints tab if in Analysis
+          if (this.activeTab === 'analysis') {
+            this.switchTab('hints');
+          }
+          this.triggerQuickAction(action, promptText);
         }
       });
     });
 
-    // Interviewer Behavior selector buttons
+    // Interviewer Persona selector buttons
     shadow.querySelectorAll('.hf-behavior-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const persona = e.currentTarget.dataset.persona;
         await this.saveSettings({ persona });
         this.updateBehaviorSelector();
         
-        // Print a small system message in the Interviewer chat
         this.histories.interviewer.push({
           role: 'model',
-          text: `*System: Interviewer persona switched to **${persona === 'interviewer' ? 'FAANG Interviewer' : persona === 'mentor' ? 'Helpful Coach' : 'Socratic Tutor'}**.*`,
+          text: `*System: Persona switched to **${persona === 'interviewer' ? 'FAANG Interviewer' : persona === 'mentor' ? 'Helpful Coach' : 'Socratic Tutor'}**.*`,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
         this.renderMessages();
       });
     });
 
-    // Settings overlay toggle
-    shadow.querySelector('#footer-menu-settings').addEventListener('click', () => {
-      this.openSettings();
-    });
-    
-    shadow.querySelector('#close-settings-btn').addEventListener('click', () => {
-      this.closeSettings();
-    });
-
-    shadow.querySelector('#btn-save-settings-form').addEventListener('click', () => {
-      this.saveSettingsForm();
-    });
-
-    shadow.querySelector('#btn-test-settings-connection').addEventListener('click', () => {
-      this.testSettingsConnection();
-    });
-
-    // Settings provider change
+    // Settings modal
+    shadow.querySelector('#footer-menu-settings').addEventListener('click', () => this.openSettings());
+    shadow.querySelector('#close-settings-btn').addEventListener('click', () => this.closeSettings());
+    shadow.querySelector('#btn-save-settings-form').addEventListener('click', () => this.saveSettingsForm());
+    shadow.querySelector('#btn-test-settings-connection').addEventListener('click', () => this.testSettingsConnection());
     shadow.querySelector('#settings-provider-select').addEventListener('change', (e) => {
       this.toggleSettingsFormFields(e.target.value);
     });
 
-    // Simple alerts for mock links
+    // Simple alerts
     shadow.querySelector('#footer-menu-tips').addEventListener('click', () => {
-      alert("💡 Interview Tips:\n1. Clarify requirements before coding.\n2. State time/space complexity first.\n3. Mention edge cases (empty arrays, bounds).\n4. Walk through a dry run on paper.");
+      alert("💡 Interview Tips:\n1. Clarify requirements before coding.\n2. State time/space complexity upfront.\n3. Identify edge cases early.\n4. Walk through a dry run out loud.");
     });
     shadow.querySelector('#footer-menu-notes').addEventListener('click', () => {
-      alert("📝 Notes:\nSave your session summaries here to review before real technical interviews!");
+      alert("📝 Notes:\nKeep track of key problem patterns and key takeaways here!");
     });
 
-    // Sync the selector button state on start
+    // Code copy delegation
+    shadow.addEventListener('click', (e) => {
+      if (e.target && e.target.classList.contains('hf-btn-copy-code')) {
+        const codeContainer = e.target.closest('.hf-code-block-container');
+        if (codeContainer) {
+          const codeEl = codeContainer.querySelector('code');
+          if (codeEl) {
+            navigator.clipboard.writeText(codeEl.textContent || '');
+            const originalText = e.target.textContent;
+            e.target.textContent = 'Copied! ✓';
+            e.target.style.color = '#00b8a3';
+            e.target.style.borderColor = '#00b8a3';
+            setTimeout(() => {
+              e.target.textContent = originalText;
+              e.target.style.color = '';
+              e.target.style.borderColor = '';
+            }, 2000);
+          }
+        }
+      }
+    });
+
     this.updateBehaviorSelector();
   }
 
@@ -1275,17 +1580,13 @@ class HintFlowSidebar {
     this.shadowRoot.querySelectorAll('.hf-behavior-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.persona === persona);
     });
-    // Also sync the settings modal dropdown
     const modalSelect = this.shadowRoot.querySelector('#settings-persona-select');
-    if (modalSelect) {
-      modalSelect.value = persona;
-    }
+    if (modalSelect) modalSelect.value = persona;
   }
 
   switchTab(tab) {
     if (this.activeTab === tab) return;
     
-    // Hide old active content pane and tab button
     this.shadowRoot.querySelectorAll('.hf-tab-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === tab);
     });
@@ -1296,8 +1597,8 @@ class HintFlowSidebar {
     
     this.activeTab = tab;
     
-    // Initial welcome message if history is empty
-    if (this.histories[tab].length === 0) {
+    const targetHistory = tab === 'analysis' ? 'hints' : tab;
+    if (this.histories[targetHistory] && this.histories[targetHistory].length === 0) {
       this.addWelcomeMessage();
     } else {
       this.renderMessages();
@@ -1308,18 +1609,14 @@ class HintFlowSidebar {
   openSettings() {
     const shadow = this.shadowRoot;
     shadow.querySelector('#settings-provider-select').value = this.settings.provider;
-    
     shadow.querySelector('#settings-gemini-key-input').value = this.settings.geminiApiKey || '';
     shadow.querySelector('#settings-gemini-model-select').value = this.settings.geminiModel;
-    
     shadow.querySelector('#settings-groq-key-input').value = this.settings.groqApiKey || '';
     shadow.querySelector('#settings-groq-model-select').value = this.settings.groqModel;
-    
     shadow.querySelector('#settings-backend-url-input').value = this.settings.backendUrl || '';
     shadow.querySelector('#settings-persona-select').value = this.settings.persona;
     
     this.toggleSettingsFormFields(this.settings.provider);
-    
     shadow.querySelector('#settings-overlay-modal').classList.add('open');
     shadow.querySelector('#settings-status-msg').style.display = 'none';
   }
@@ -1332,10 +1629,8 @@ class HintFlowSidebar {
     const shadow = this.shadowRoot;
     shadow.querySelector('#settings-gemini-key-group').style.display = provider === 'gemini' ? 'flex' : 'none';
     shadow.querySelector('#settings-gemini-model-group').style.display = provider === 'gemini' ? 'flex' : 'none';
-    
     shadow.querySelector('#settings-groq-key-group').style.display = provider === 'groq' ? 'flex' : 'none';
     shadow.querySelector('#settings-groq-model-group').style.display = provider === 'groq' ? 'flex' : 'none';
-    
     shadow.querySelector('#settings-backend-url-group').style.display = provider === 'backend' ? 'flex' : 'none';
   }
 
@@ -1353,12 +1648,10 @@ class HintFlowSidebar {
       this.showSettingsStatus("Please enter a Google AI Studio API Key.", "red");
       return;
     }
-
     if (provider === 'groq' && !groqApiKey) {
       this.showSettingsStatus("Please enter a Groq API Key.", "red");
       return;
     }
-
     if (provider === 'backend' && !backendUrl) {
       this.showSettingsStatus("Please enter a Backend URL.", "red");
       return;
@@ -1366,25 +1659,16 @@ class HintFlowSidebar {
 
     await this.saveSettings({ provider, geminiApiKey, geminiModel, groqApiKey, groqModel, backendUrl, persona });
     this.showSettingsStatus("Settings saved successfully!", "green");
-    
     this.updateBehaviorSelector();
     
-    setTimeout(() => {
-      this.closeSettings();
-    }, 1000);
+    setTimeout(() => this.closeSettings(), 1000);
   }
 
   showSettingsStatus(msg, color) {
     const el = this.shadowRoot.querySelector('#settings-status-msg');
     el.style.display = 'block';
     el.innerText = msg;
-    if (color === 'green') {
-      el.style.color = '#34d399';
-    } else if (color === 'red') {
-      el.style.color = '#f87171';
-    } else {
-      el.style.color = '#fbbf24'; // yellow
-    }
+    el.style.color = color === 'green' ? '#34d399' : color === 'red' ? '#f87171' : '#fbbf24';
   }
 
   async testSettingsConnection() {
@@ -1408,34 +1692,10 @@ class HintFlowSidebar {
         const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: "Hello. Respond in 2 words." }] }]
-          })
+          body: JSON.stringify({ contents: [{ parts: [{ text: "Hello. Respond in 2 words." }] }] })
         });
-
-        if (response.ok) {
-          this.showSettingsStatus("Gemini connection successful!", "green");
-        } else {
-          const err = await response.json();
-          let errMessage = err.error?.message || response.statusText;
-          
-          try {
-            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${geminiApiKey}`;
-            const listResponse = await fetch(listUrl);
-            if (listResponse.ok) {
-              const listData = await listResponse.json();
-              const models = listData.models?.map(m => m.name.replace('models/', '')) || [];
-              console.log("[HintFlow] Available models for this key:", models);
-              if (models.length > 0) {
-                errMessage += ` (Available: ${models.slice(0, 3).join(', ')}...)`;
-              }
-            }
-          } catch (listErr) {
-            console.error("[HintFlow] Failed to list models:", listErr);
-          }
-
-          this.showSettingsStatus(`Failed: ${errMessage}`, "red");
-        }
+        if (response.ok) this.showSettingsStatus("Gemini connection successful!", "green");
+        else this.showSettingsStatus("Connection failed. Check API key.", "red");
       } catch (e) {
         this.showSettingsStatus(`Network Error: ${e.message}`, "red");
       }
@@ -1448,23 +1708,11 @@ class HintFlowSidebar {
         const url = 'https://api.groq.com/openai/v1/chat/completions';
         const response = await fetch(url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${groqApiKey}`
-          },
-          body: JSON.stringify({
-            model: groqModel,
-            messages: [{ role: 'user', content: 'Hello. Respond in 2 words.' }],
-            max_tokens: 10
-          })
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
+          body: JSON.stringify({ model: groqModel, messages: [{ role: 'user', content: 'Hello' }], max_tokens: 10 })
         });
-
-        if (response.ok) {
-          this.showSettingsStatus("Groq connection successful!", "green");
-        } else {
-          const err = await response.json();
-          this.showSettingsStatus(`Failed: ${err.error?.message || response.statusText}`, "red");
-        }
+        if (response.ok) this.showSettingsStatus("Groq connection successful!", "green");
+        else this.showSettingsStatus("Groq connection failed.", "red");
       } catch (e) {
         this.showSettingsStatus(`Network Error: ${e.message}`, "red");
       }
@@ -1474,17 +1722,11 @@ class HintFlowSidebar {
         return;
       }
       try {
-        const response = await fetch(backendUrl.replace("/api/hint", "/"), {
-          method: 'GET'
-        });
-
-        if (response.ok) {
-          this.showSettingsStatus("Connected to backend server!", "green");
-        } else {
-          this.showSettingsStatus(`Backend returned status: ${response.status}`, "red");
-        }
+        const response = await fetch(backendUrl.replace("/api/hint", "/"));
+        if (response.ok) this.showSettingsStatus("Connected to backend server!", "green");
+        else this.showSettingsStatus(`Backend status: ${response.status}`, "red");
       } catch (e) {
-        this.showSettingsStatus(`Could not reach backend: ${e.message}`, "red");
+        this.showSettingsStatus(`Backend Error: ${e.message}`, "red");
       }
     }
   }
@@ -1492,28 +1734,29 @@ class HintFlowSidebar {
   formatMarkdown(text) {
     if (!text) return "";
     
-    // 1. Extract and format code blocks (to prevent formatting code contents as markdown)
     const codeBlocks = [];
     let tempText = text.replace(/```([a-zA-Z0-9-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
       const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
-      const escapedCode = code
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-      codeBlocks.push(`<pre class="hf-code-block"><code class="language-${lang}">${escapedCode}</code></pre>`);
+      const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const blockHtml = `
+        <div class="hf-code-block-container">
+          <div class="hf-code-header">
+            <span>${lang || 'code'}</span>
+            <button class="hf-btn-copy-code">Copy</button>
+          </div>
+          <pre class="hf-code-block"><code class="language-${lang}">${escapedCode}</code></pre>
+        </div>
+      `;
+      codeBlocks.push(blockHtml);
       return placeholder;
     });
 
-    // 2. Parse inline text styles (bold, italics, inline code)
     tempText = tempText
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-      .replace(/`([^`]+)`/g, '<code class="hf-inline-code">$1</code>');
+      .replace(/`([^`]+)`/g, '<code class="hf-inline-code">$1</code>')
+      .replace(/\n/g, '<br/>');
 
-    // Convert line breaks to <br/>
-    tempText = tempText.replace(/\n/g, '<br/>');
-
-    // 3. Put code blocks back
     codeBlocks.forEach((blockHtml, index) => {
       tempText = tempText.replace(`__CODE_BLOCK_${index}__`, blockHtml);
     });
@@ -1522,35 +1765,34 @@ class HintFlowSidebar {
   }
 
   renderMessages() {
-    const logId = `#chat-messages-log-${this.activeTab === 'hints' ? 'hints' : 'interviewer'}`;
+    const currentTab = this.activeTab === 'analysis' ? 'hints' : this.activeTab;
+    const logId = `#chat-messages-log-${currentTab}`;
     const log = this.shadowRoot.querySelector(logId);
     if (!log) return;
     log.innerHTML = '';
     
-    const messages = this.histories[this.activeTab];
+    const messages = (this.histories[currentTab] || []).filter(msg => msg && msg.text && msg.text.trim());
     messages.forEach(msg => {
       const msgEl = document.createElement('div');
       msgEl.className = `hf-msg ${msg.role === 'model' ? 'model' : 'user'}`;
       
       const isModel = msg.role === 'model';
       const isSystem = msg.text.startsWith('*System:');
-      
-      const name = isModel ? (this.activeTab === 'interviewer' ? 'Interviewer' : 'AI Tutor') : 'You';
-      const avatar = isModel ? '🤖' : '👤';
+      const name = isModel ? (currentTab === 'interviewer' ? 'Interviewer' : 'AI Tutor') : 'You';
       
       let formattedText = this.formatMarkdown(msg.text);
 
       if (isSystem) {
         msgEl.style.alignSelf = 'center';
         msgEl.style.maxWidth = '95%';
-        msgEl.style.opacity = '0.8';
-        msgEl.innerHTML = `<div style="font-size: 11px; font-style: italic; background: #262626; padding: 8px 14px; border-radius: 8px; border: 1px solid #3c3c3c; color: #ffa116; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">${formattedText.replace(/\*System:\s*/i, '')}</div>`;
+        msgEl.style.opacity = '0.9';
+        msgEl.innerHTML = `<div style="font-size: 11.5px; font-weight: 500; background: #1c1c1c; padding: 8px 16px; border-radius: 8px; border: 1px solid #303030; color: #ffa116; text-align: center;">${formattedText.replace(/\*System:\s*/i, '')}</div>`;
       } else {
         msgEl.innerHTML = `
           <div class="hf-msg-header">
-            <span class="hf-msg-avatar">${avatar}</span>
+            <span class="hf-msg-avatar">${isModel ? '🤖' : '👤'}</span>
             <span class="hf-msg-name">${name}</span>
-            <span class="hf-msg-time">${msg.time}</span>
+            <span class="hf-msg-time" style="font-weight: 400; opacity: 0.7; font-size: 10px; margin-left: 4px;">${msg.time}</span>
           </div>
           <div class="hf-msg-bubble">${formattedText}</div>
         `;
@@ -1558,7 +1800,6 @@ class HintFlowSidebar {
       log.appendChild(msgEl);
     });
 
-    // Scroll to bottom
     setTimeout(() => {
       log.scrollTop = log.scrollHeight;
     }, 50);
@@ -1569,10 +1810,10 @@ class HintFlowSidebar {
     
     // 1. Hint Level Dots
     const dotsContainer = shadow.querySelector('#hint-level-dots-container');
+    const activeLevel = Math.min(5, Math.max(0, this.widgetState.hintLevel || 0));
+    
     if (dotsContainer) {
       dotsContainer.innerHTML = '';
-      const activeLevel = Math.min(5, Math.max(0, this.widgetState.hintLevel));
-      
       const titleLabel = shadow.querySelector('#hint-level-title-label');
       if (titleLabel) {
         titleLabel.textContent = `Hint Level: ${activeLevel}/5`;
@@ -1586,24 +1827,27 @@ class HintFlowSidebar {
     }
     
     const hintDesc = shadow.querySelector('#hint-level-desc-text');
-    if (hintDesc) hintDesc.textContent = this.widgetState.hintText;
+    if (hintDesc) hintDesc.textContent = this.widgetState.hintText || 'Click "Next Hint" to get started.';
 
-    // 2. Approach list / stats
+    // 2. Approach list / stats in Analysis section
     const curVal = shadow.querySelector('#approach-current-val');
-    if (curVal) curVal.textContent = this.widgetState.currentApproach;
+    if (curVal) curVal.textContent = this.widgetState.currentApproach || 'None';
     
     const betVal = shadow.querySelector('#approach-better-val');
-    if (betVal) {
-      const progressText = this.widgetState.progress > 0 ? ` (${this.widgetState.progress}% Done)` : '';
-      betVal.textContent = `${this.widgetState.betterApproach}${progressText}`;
-    }
+    if (betVal) betVal.textContent = this.widgetState.betterApproach || 'Not analyzed';
     
+    const progressFill = shadow.querySelector('#analysis-progress-fill');
+    if (progressFill) progressFill.style.width = `${Math.min(100, Math.max(0, this.widgetState.progress || 0))}%`;
+
+    const progressBadge = shadow.querySelector('#analysis-progress-badge');
+    if (progressBadge) progressBadge.textContent = `${this.widgetState.progress || 0}% Optimal`;
+
     // 3. Complexity boxes
     const timeVal = shadow.querySelector('#complexity-time-val');
-    if (timeVal) timeVal.textContent = this.widgetState.timeComplexity;
+    if (timeVal) timeVal.textContent = this.widgetState.timeComplexity || '-';
     
     const spaceVal = shadow.querySelector('#complexity-space-val');
-    if (spaceVal) spaceVal.textContent = this.widgetState.spaceComplexity;
+    if (spaceVal) spaceVal.textContent = this.widgetState.spaceComplexity || '-';
     
     const improvBadge = shadow.querySelector('#complexity-improvable-badge');
     if (improvBadge) {
@@ -1611,25 +1855,23 @@ class HintFlowSidebar {
         improvBadge.textContent = "Yes ▲";
         improvBadge.className = "hf-complexity-badge hf-badge-red";
       } else {
-        improvBadge.textContent = "Optimal";
+        improvBadge.textContent = "Optimal ✓";
         improvBadge.className = "hf-complexity-badge hf-badge-green";
       }
     }
   }
 
   async handleUserSendMessage() {
-    const suffix = this.activeTab === 'hints' ? 'hints' : 'interviewer';
-    const textInput = this.shadowRoot.querySelector(`#chat-textarea-input-${suffix}`);
+    const activeTabKey = this.activeTab === 'analysis' ? 'hints' : this.activeTab;
+    const textInput = this.shadowRoot.querySelector(`#chat-textarea-input-${activeTabKey}`);
     if (!textInput) return;
     
     const userText = textInput.value.trim();
     if (!userText || this.isResponding) return;
 
-    // Clear input
     textInput.value = '';
     
-    // Save message to history
-    this.histories[this.activeTab].push({
+    this.histories[activeTabKey].push({
       role: 'user',
       text: userText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -1642,8 +1884,8 @@ class HintFlowSidebar {
   async triggerQuickAction(actionType, placeholderMessage) {
     if (this.isResponding) return;
     
-    // Print placeholder in chat to make it look like a prompt
-    this.histories[this.activeTab].push({
+    const targetTab = this.activeTab === 'analysis' ? 'hints' : this.activeTab;
+    this.histories[targetTab].push({
       role: 'user',
       text: placeholderMessage,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -1655,28 +1897,23 @@ class HintFlowSidebar {
 
   setResponding(state) {
     this.isResponding = state;
-    const suffix = this.activeTab === 'hints' ? 'hints' : 'interviewer';
+    const activeTabKey = this.activeTab === 'analysis' ? 'hints' : this.activeTab;
     
-    const sendBtn = this.shadowRoot.querySelector(`#btn-send-message-${suffix}`);
-    const indicator = this.shadowRoot.querySelector(`#typing-indicator-${suffix}`);
+    const sendBtn = this.shadowRoot.querySelector(`#btn-send-message-${activeTabKey}`);
+    const indicator = this.shadowRoot.querySelector(`#typing-indicator-${activeTabKey}`);
     
     if (sendBtn) sendBtn.disabled = state;
     if (indicator) indicator.style.display = state ? 'flex' : 'none';
     
     if (state) {
-      const log = this.shadowRoot.querySelector(`#chat-messages-log-${suffix}`);
-      if (log) {
-        setTimeout(() => {
-          log.scrollTop = log.scrollHeight;
-        }, 50);
-      }
+      const log = this.shadowRoot.querySelector(`#chat-messages-log-${activeTabKey}`);
+      if (log) setTimeout(() => { log.scrollTop = log.scrollHeight; }, 50);
     }
   }
 
   async callAI(userPrompt, action = '') {
     this.setResponding(true);
 
-    // 1. Gather all context
     const problemInfo = this.parser.getProblemInfo();
     const problemContext = {
       title: problemInfo.title || document.title,
@@ -1691,32 +1928,27 @@ class HintFlowSidebar {
       language: this.currentLanguage
     };
 
-    const activeHistory = this.histories[this.activeTab];
+    const activeTabKey = this.activeTab === 'analysis' ? 'hints' : this.activeTab;
+    const activeHistory = this.histories[activeTabKey];
     const historyContext = [];
     let expectedRole = 'user';
     for (const msg of activeHistory.slice(0, -1)) {
-      if (historyContext.length === 0 && msg.role === 'model') {
-        continue;
-      }
+      if (historyContext.length === 0 && msg.role === 'model') continue;
       const role = msg.role === 'model' ? 'model' : 'user';
       if (role === expectedRole) {
-        historyContext.push({
-          role,
-          parts: [{ text: msg.text }]
-        });
+        historyContext.push({ role, parts: [{ text: msg.text }] });
         expectedRole = expectedRole === 'user' ? 'model' : 'user';
       }
     }
 
-    // 2. Validate API configuration
     if (this.settings.provider === 'gemini' && !this.settings.geminiApiKey) {
-      this.addModelResponse("⚠️ Google AI Studio API Key not configured! Please click on ⚙️ Settings at the bottom and enter your API Key.");
+      this.addModelResponse("⚠️ **Google AI Studio API Key not configured!**\n\nPlease click on **⚙️ Settings** at the bottom of the sidebar and enter your API Key to start.");
       this.setResponding(false);
       return;
     }
 
     if (this.settings.provider === 'groq' && !this.settings.groqApiKey) {
-      this.addModelResponse("⚠️ Groq API Key not configured! Please click on ⚙️ Settings at the bottom and enter your API Key.");
+      this.addModelResponse("⚠️ **Groq API Key not configured!**\n\nPlease click on **⚙️ Settings** at the bottom of the sidebar and enter your Groq API Key.");
       this.setResponding(false);
       return;
     }
@@ -1732,7 +1964,12 @@ class HintFlowSidebar {
       }
 
       if (result) {
-        // Update widgets state
+        // STRICT RULE: hintLevel ONLY increments when Next Hint button (action === 'stuck') is clicked!
+        let calculatedHintLevel = this.widgetState.hintLevel || 0;
+        if (action === 'stuck') {
+          calculatedHintLevel = Math.min(5, calculatedHintLevel + 1);
+        }
+
         this.widgetState = {
           progress: result.progress || 0,
           progressDesc: result.progressDesc || "You're making progress!",
@@ -1741,66 +1978,106 @@ class HintFlowSidebar {
           timeComplexity: result.userCodeTimeComplexity || 'N/A',
           spaceComplexity: result.userCodeSpaceComplexity || 'N/A',
           canImprove: result.canImproveComplexity || false,
-          hintLevel: result.hintLevel || 0,
-          hintText: result.hintText || 'No hints yet.'
+          hintLevel: calculatedHintLevel,
+          hintText: result.hintText || result.chatMessage || 'Step-by-step guidance updated.'
         };
         
-        // Add chat response
         this.addModelResponse(result.chatMessage);
       } else {
         this.addModelResponse("⚠️ Failed to parse response from AI.");
       }
     } catch (error) {
       console.error(error);
-      this.addModelResponse(`❌ Error generating response: ${error.message}`);
+      this.addModelResponse(`❌ **Error generating response:** ${error.message}`);
     } finally {
       this.setResponding(false);
     }
   }
 
   addModelResponse(text) {
-    this.histories[this.activeTab].push({
+    if (!text || !text.trim()) return;
+    const targetTab = this.activeTab === 'analysis' ? 'hints' : this.activeTab;
+    this.histories[targetTab].push({
       role: 'model',
-      text: text,
+      text: text.trim(),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     });
     this.renderMessages();
     this.updateWidgets();
   }
 
+  getSystemInstruction(mode, persona) {
+    let personaDirective = "";
+    
+    if (persona === 'interviewer') {
+      personaDirective = `PERSONA: CHALLENGER (FAANG Senior Technical Interviewer)
+- Tone: Strict, sharp, analytical, demanding, professional.
+- Rule: NEVER give away the hint or algorithm! Do NOT reveal solution data structures like "use a HashMap" or "use Two Pointers".
+- Action: Ask 1 CRISP, INTUITION-STRIKING QUESTION questioning the bottleneck of their code or logic (e.g. "What is the time complexity of your inner loop? What property of numbers could eliminate that extra search?").`;
+    } else if (persona === 'mentor') {
+      personaDirective = `PERSONA: COACH (Supportive Coding Mentor)
+- Tone: Encouraging, structured, supportive.
+- Rule: Do NOT dump complete solutions. Guide the user through problem-solving steps.
+- Action: Ask gentle guiding questions that help the user break down the problem logically (e.g. "Good start! If you could store values as you iterate, what lookup time would you want?").`;
+    } else if (persona === 'socratic') {
+      personaDirective = `PERSONA: SOCRATIC (Pure Socratic Tutor)
+- Tone: Purely inquisitive, question-driven.
+- Rule: YOU MUST RESPOND ONLY WITH A GUIDING SOCRATIC QUESTION! Never state hints, answers, or code blocks.
+- Action: Ask a thought-provoking counter-question that forces the candidate to deduce the idea themselves (e.g. "If you know the target sum and the current element x, what exact value are you looking for?").`;
+    }
+
+    const modeDirective = mode === 'interviewer'
+      ? `MODE: INTERVIEW MODE
+CRITICAL INTERVIEW RULE: DO NOT GIVE HINTS OR SOLUTION STEPS IN INTERVIEW MODE! Hints belong strictly in the separate "Hint Mode" tab. Your sole role here is to act as a real tech interviewer—ask intuition-striking questions, challenge their time/space complexity, and probe their logic without spoiling the answer. If the candidate asks for a hint in Interviewer Mode, say: "I can't provide hints in Interviewer Mode—switch to the 'Hint Mode' tab for step-by-step nudges! What logic are you contemplating?"`
+      : `MODE: HINT MODE
+Provide step-by-step conceptual nudges for the user's current progress stage. Do not output complete code blocks for the full solution.`;
+
+    const conversationalRule = `CONVERSATIONAL & GREETING HANDLING:
+- If the user's message is a greeting or casual remark (e.g., "hlo", "hi", "hello", "hey", "how are you"):
+  - DO NOT dump problem analysis, complexity stats, or technical questions!
+  - Reply naturally in 1 short sentence:
+    - If in Interviewer Mode: "Hello! I'm your interviewer today. Tell me your initial thoughts or proposed approach when you're ready."
+    - If in Hint Mode: "Hello! Let me know what part of the problem you'd like a hint on, or click 'Next Hint' above."
+- If the user's message is an acknowledgment (e.g., "ok", "okay", "got it", "thanks", "sure", "cool", "yes"):
+  - Reply in 1 short friendly sentence: "Great! Let me know what logic or code you plan to write next."`;
+
+    return `You are HintFlow, a top-tier AI coding mentor for LeetCode.
+
+${modeDirective}
+
+${personaDirective}
+
+${conversationalRule}
+
+STRICT RESPONSE FORMAT:
+Return strictly a JSON object matching this schema (do not wrap in markdown blocks):
+{
+  "chatMessage": "Your message to the user.",
+  "progress": 75,
+  "progressDesc": "Progress summary",
+  "currentApproach": "User's current approach, e.g. Two Pointers with sorting",
+  "betterApproach": "Target optimal approach, e.g. Hash Map (40% Optimal)",
+  "userCodeTimeComplexity": "Time complexity estimate, e.g. O(n log n)",
+  "userCodeSpaceComplexity": "Space complexity estimate, e.g. O(n)",
+  "canImproveComplexity": true,
+  "hintLevel": 1,
+  "hintText": "Short conceptual hint"
+}`;
+  }
+
   async callGeminiDirect(problem, codeState, userPrompt, history, action) {
     const key = this.settings.geminiApiKey;
     const model = this.settings.geminiModel;
     const persona = this.settings.persona;
-    const mode = this.activeTab; // 'interviewer' | 'hints'
+    const mode = this.activeTab;
 
-    const systemInstruction = `You are HintFlow, a premium mock interviewer and AI coding coach.
-Your goal is to guide the user to solve their coding problem without giving direct code solutions.
-DO NOT WRITE COMPLETE CODE BLOCKS for the solution. If the user asks for code, guide them conceptually or write small pseudocode snippets instead.
-
-Current Mode: ${mode === 'interviewer' ? 'FAANG Interviewer Mode (Act like an interviewer, ask approach, time/space complexity, edge cases, probe code bugs)' : 'Supportive Coding Tutor Mode (Provide progressive hints, explain concepts)'}
-Persona setting: ${persona}
-
-IMPORTANT: You must return your response STRICTLY as a JSON object matching this schema. Do not wrap it in any other text.
-{
-  "chatMessage": "The text message you say to the user.",
-  "progress": 75, // integer 0 to 100 based on user's progress towards optimal solution
-  "progressDesc": "Short encouraging progress description",
-  "currentApproach": "Description of user's current approach, e.g. Brute Force or Two Pointers",
-  "betterApproach": "The next better approach they should aim for, e.g. Binary Search, or 'None (Optimal)'",
-  "userCodeTimeComplexity": "Time complexity of user's code, e.g. O(n²)",
-  "userCodeSpaceComplexity": "Space complexity of user's code, e.g. O(1)",
-  "canImproveComplexity": true, // boolean indicating if complexity can be improved
-  "hintLevel": 2, // current hint level from 1 to 5 (increment if they make progress or ask for next hint)
-  "hintText": "A short conceptual hint (no code) for their current stage."
-}`;
+    const systemInstruction = this.getSystemInstruction(mode, persona);
 
     const promptText = `
 PROBLEM CONTEXT:
 Title: ${problem.title}
 Difficulty: ${problem.difficulty}
 Description: ${problem.description}
-Constraints: ${problem.constraints}
 
 USER CODE CONTEXT:
 Language: ${codeState.language}
@@ -1809,24 +2086,17 @@ Current Code:
 ${codeState.code}
 \`\`\`
 
-USER TRIGGER ACTION: ${action ? `User triggered action: ${action}` : 'None'}
 USER MESSAGE: ${userPrompt}
+Respond with JSON payload.`;
 
-Please evaluate the code and conversation, and respond with the required JSON payload.`;
-
-    const contents = [...history, {
-      role: 'user',
-      parts: [{ text: promptText }]
-    }];
+    const contents = [...history, { role: 'user', parts: [{ text: promptText }] }];
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: contents,
-        system_instruction: {
-          parts: [{ text: systemInstruction }]
-        },
+        contents,
+        system_instruction: { parts: [{ text: systemInstruction }] },
         generation_config: {
           response_mime_type: 'application/json',
           response_schema: {
@@ -1856,30 +2126,20 @@ Please evaluate the code and conversation, and respond with the required JSON pa
 
     const data = await response.json();
     const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    
     return JSON.parse(responseText);
   }
 
   async callBackendServer(problem, codeState, userPrompt, history, action) {
     const url = this.settings.backendUrl;
-
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        problem,
-        codeState,
-        userPrompt,
-        history,
-        action,
+        problem, codeState, userPrompt, history, action,
         settings: { ...this.settings, mode: this.activeTab }
       })
     });
-
-    if (!response.ok) {
-      throw new Error(`Backend returned status ${response.status}: ${response.statusText}`);
-    }
-
+    if (!response.ok) throw new Error(`Backend status ${response.status}`);
     return await response.json();
   }
 
@@ -1889,73 +2149,20 @@ Please evaluate the code and conversation, and respond with the required JSON pa
     const persona = this.settings.persona;
     const mode = this.activeTab;
 
-    const systemInstruction = `You are HintFlow, a premium mock interviewer and AI coding coach.
-Your goal is to guide the user to solve their coding problem without giving direct code solutions.
-DO NOT WRITE COMPLETE CODE BLOCKS for the solution. If the user asks for code, guide them conceptually or write small pseudocode snippets instead.
+    const systemInstruction = this.getSystemInstruction(mode, persona);
 
-Current Mode: ${mode === 'interviewer' ? 'FAANG Interviewer Mode (Act like an interviewer, ask approach, time/space complexity, edge cases, probe code bugs)' : 'Supportive Coding Tutor Mode (Provide progressive hints, explain concepts)'}
-Persona setting: ${persona}
+    const promptText = `PROBLEM: ${problem.title}\nCODE:\n\`\`\`\n${codeState.code}\n\`\`\`\nUSER MESSAGE: ${userPrompt}`;
 
-IMPORTANT: You must return your response STRICTLY as a JSON object matching this schema. Do not wrap it in any other text or markdown blocks (e.g. do not wrap in \`\`\`json).
-{
-  "chatMessage": "The text message you say to the user.",
-  "progress": 75, // integer 0 to 100 based on user's progress towards optimal solution
-  "progressDesc": "Short encouraging progress description",
-  "currentApproach": "Description of user's current approach, e.g. Brute Force or Two Pointers",
-  "betterApproach": "The next better approach they should aim for, e.g. Binary Search, or 'None (Optimal)'",
-  "userCodeTimeComplexity": "Time complexity of user's code, e.g. O(n²)",
-  "userCodeSpaceComplexity": "Space complexity of user's code, e.g. O(1)",
-  "canImproveComplexity": true, // boolean indicating if complexity can be improved
-  "hintLevel": 2, // current hint level from 1 to 5
-  "hintText": "A short conceptual hint (no code) for their current stage."
-}`;
-
-    const promptText = `
-PROBLEM CONTEXT:
-Title: ${problem.title}
-Difficulty: ${problem.difficulty}
-Description: ${problem.description}
-Constraints: ${problem.constraints}
-
-USER CODE CONTEXT:
-Language: ${codeState.language}
-Current Code:
-\`\`\`
-${codeState.code}
-\`\`\`
-
-USER TRIGGER ACTION: ${action ? `User triggered action: ${action}` : 'None'}
-USER MESSAGE: ${userPrompt}
-
-Please evaluate the code and conversation, and respond with the required JSON payload.`;
-
-    const messages = [
-      { role: 'system', content: systemInstruction }
-    ];
-
+    const messages = [{ role: 'system', content: systemInstruction }];
     for (const msg of history) {
-      messages.push({
-        role: msg.role === 'model' ? 'assistant' : 'user',
-        content: msg.parts[0].text
-      });
+      messages.push({ role: msg.role === 'model' ? 'assistant' : 'user', content: msg.parts[0].text });
     }
-
-    messages.push({
-      role: 'user',
-      content: promptText
-    });
+    messages.push({ role: 'user', content: promptText });
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: messages,
-        response_format: { type: 'json_object' }
-      })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({ model, messages, response_format: { type: 'json_object' } })
     });
 
     if (!response.ok) {
@@ -1964,12 +2171,7 @@ Please evaluate the code and conversation, and respond with the required JSON pa
     }
 
     const data = await response.json();
-    const responseText = data.choices?.[0]?.message?.content;
-    if (!responseText) {
-      throw new Error("Empty response from Groq API");
-    }
-
-    return JSON.parse(responseText);
+    return JSON.parse(data.choices?.[0]?.message?.content);
   }
 }
 
