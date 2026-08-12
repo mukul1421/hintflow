@@ -3,25 +3,25 @@ class HintFlowSidebar {
     this.container = container;
     this.parser = parser;
     this.shadowRoot = container.attachShadow({ mode: 'open' });
-    
+
     // UI state
     this.isOpen = false;
     this.activeTab = 'interviewer'; // 'interviewer' | 'hints' | 'analysis'
     this.currentCode = "";
     this.currentLanguage = "";
     this.isResponding = false;
-    
+
     // Logo Asset URL
-    this.logoUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL 
-      ? chrome.runtime.getURL('assets/logo.png') 
+    this.logoUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL
+      ? chrome.runtime.getURL('assets/logo.png')
       : 'assets/logo.png';
-    
+
     // Conversation histories
     this.histories = {
       interviewer: [],
       hints: []
     };
-    
+
     // Settings configuration
     this.settings = {
       provider: 'gemini', // 'gemini' | 'groq' | 'backend'
@@ -51,13 +51,13 @@ class HintFlowSidebar {
   async init() {
     // Load settings from chrome storage
     await this.loadSettings();
-    
+
     // Inject CSS & HTML
     this.render();
-    
+
     // Setup event listeners
     this.setupListeners();
-    
+
     // Setup message listener from inject.js (MAIN world)
     window.addEventListener("hintflow:code-changed", (event) => {
       const { code, language } = event.detail;
@@ -93,15 +93,15 @@ class HintFlowSidebar {
     this.isOpen = !this.isOpen;
     const sidebarEl = this.shadowRoot.querySelector('.hf-sidebar-wrapper');
     const toggleBtn = this.shadowRoot.querySelector('.hf-floating-toggle');
-    
+
     if (this.isOpen) {
       sidebarEl.classList.add('open');
       toggleBtn.classList.add('hidden');
       document.body.classList.add('hintflow-sidebar-open');
-      
+
       // Request latest code on open
       window.dispatchEvent(new CustomEvent("hintflow:request-code"));
-      
+
       // Initial welcome message if history is empty
       const history = this.histories[this.activeTab === 'analysis' ? 'hints' : this.activeTab];
       if (history && history.length === 0) {
@@ -121,7 +121,7 @@ class HintFlowSidebar {
     } else if (this.activeTab === 'hints') {
       welcome = "Welcome to **Hint Mode**! Click \"Next Hint\" above or ask any question to receive progressive, step-by-step conceptual nudges.";
     }
-    
+
     const targetTab = this.activeTab === 'analysis' ? 'hints' : this.activeTab;
     this.histories[targetTab].push({
       role: 'model',
@@ -1451,11 +1451,11 @@ class HintFlowSidebar {
 
   setupListeners() {
     const shadow = this.shadowRoot;
-    
+
     // Toggle sidebar
     shadow.querySelector('.hf-floating-toggle').addEventListener('click', () => this.toggle());
     shadow.querySelector('#close-sidebar-btn').addEventListener('click', () => this.toggle());
-    
+
     // 3 Tab switching
     shadow.querySelectorAll('.hf-tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -1467,7 +1467,7 @@ class HintFlowSidebar {
     // Send message for Interviewer tab
     const textInputInterviewer = shadow.querySelector('#chat-textarea-input-interviewer');
     const sendBtnInterviewer = shadow.querySelector('#btn-send-message-interviewer');
-    
+
     sendBtnInterviewer.addEventListener('click', () => this.handleUserSendMessage());
     textInputInterviewer.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -1479,7 +1479,7 @@ class HintFlowSidebar {
     // Send message for Hints tab
     const textInputHints = shadow.querySelector('#chat-textarea-input-hints');
     const sendBtnHints = shadow.querySelector('#btn-send-message-hints');
-    
+
     sendBtnHints.addEventListener('click', () => this.handleUserSendMessage());
     textInputHints.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -1506,7 +1506,7 @@ class HintFlowSidebar {
         else if (action === 'error') promptText = "I'm encountering an error. Can you explain what is wrong?";
         else if (action === 'edge') promptText = "What edge cases should I test my current code against?";
         else if (action === 'dryrun') promptText = "Can you dry run my code step-by-step with a test case?";
-        
+
         if (promptText) {
           // Switch to Hints tab if in Analysis
           if (this.activeTab === 'analysis') {
@@ -1523,7 +1523,7 @@ class HintFlowSidebar {
         const persona = e.currentTarget.dataset.persona;
         await this.saveSettings({ persona });
         this.updateBehaviorSelector();
-        
+
         this.histories.interviewer.push({
           role: 'model',
           text: `*System: Persona switched to **${persona === 'interviewer' ? 'FAANG Interviewer' : persona === 'mentor' ? 'Helpful Coach' : 'Socratic Tutor'}**.*`,
@@ -1586,17 +1586,17 @@ class HintFlowSidebar {
 
   switchTab(tab) {
     if (this.activeTab === tab) return;
-    
+
     this.shadowRoot.querySelectorAll('.hf-tab-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === tab);
     });
-    
+
     this.shadowRoot.querySelectorAll('.hf-tab-content').forEach(content => {
       content.classList.toggle('active', content.id === `tab-content-${tab}`);
     });
-    
+
     this.activeTab = tab;
-    
+
     const targetHistory = tab === 'analysis' ? 'hints' : tab;
     if (this.histories[targetHistory] && this.histories[targetHistory].length === 0) {
       this.addWelcomeMessage();
@@ -1615,7 +1615,7 @@ class HintFlowSidebar {
     shadow.querySelector('#settings-groq-model-select').value = this.settings.groqModel;
     shadow.querySelector('#settings-backend-url-input').value = this.settings.backendUrl || '';
     shadow.querySelector('#settings-persona-select').value = this.settings.persona;
-    
+
     this.toggleSettingsFormFields(this.settings.provider);
     shadow.querySelector('#settings-overlay-modal').classList.add('open');
     shadow.querySelector('#settings-status-msg').style.display = 'none';
@@ -1660,7 +1660,7 @@ class HintFlowSidebar {
     await this.saveSettings({ provider, geminiApiKey, geminiModel, groqApiKey, groqModel, backendUrl, persona });
     this.showSettingsStatus("Settings saved successfully!", "green");
     this.updateBehaviorSelector();
-    
+
     setTimeout(() => this.closeSettings(), 1000);
   }
 
@@ -1733,7 +1733,7 @@ class HintFlowSidebar {
 
   formatMarkdown(text) {
     if (!text) return "";
-    
+
     const codeBlocks = [];
     let tempText = text.replace(/```([a-zA-Z0-9-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
       const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
@@ -1770,16 +1770,16 @@ class HintFlowSidebar {
     const log = this.shadowRoot.querySelector(logId);
     if (!log) return;
     log.innerHTML = '';
-    
+
     const messages = (this.histories[currentTab] || []).filter(msg => msg && msg.text && msg.text.trim());
     messages.forEach(msg => {
       const msgEl = document.createElement('div');
       msgEl.className = `hf-msg ${msg.role === 'model' ? 'model' : 'user'}`;
-      
+
       const isModel = msg.role === 'model';
       const isSystem = msg.text.startsWith('*System:');
       const name = isModel ? (currentTab === 'interviewer' ? 'Interviewer' : 'AI Tutor') : 'You';
-      
+
       let formattedText = this.formatMarkdown(msg.text);
 
       if (isSystem) {
@@ -1807,35 +1807,35 @@ class HintFlowSidebar {
 
   updateWidgets() {
     const shadow = this.shadowRoot;
-    
+
     // 1. Hint Level Dots
     const dotsContainer = shadow.querySelector('#hint-level-dots-container');
     const activeLevel = Math.min(5, Math.max(0, this.widgetState.hintLevel || 0));
-    
+
     if (dotsContainer) {
       dotsContainer.innerHTML = '';
       const titleLabel = shadow.querySelector('#hint-level-title-label');
       if (titleLabel) {
         titleLabel.textContent = `Hint Level: ${activeLevel}/5`;
       }
-      
+
       for (let i = 1; i <= 5; i++) {
         const dot = document.createElement('span');
         dot.className = `hf-hint-dot ${i <= activeLevel ? 'active' : ''}`;
         dotsContainer.appendChild(dot);
       }
     }
-    
+
     const hintDesc = shadow.querySelector('#hint-level-desc-text');
     if (hintDesc) hintDesc.textContent = this.widgetState.hintText || 'Click "Next Hint" to get started.';
 
     // 2. Approach list / stats in Analysis section
     const curVal = shadow.querySelector('#approach-current-val');
     if (curVal) curVal.textContent = this.widgetState.currentApproach || 'None';
-    
+
     const betVal = shadow.querySelector('#approach-better-val');
     if (betVal) betVal.textContent = this.widgetState.betterApproach || 'Not analyzed';
-    
+
     const progressFill = shadow.querySelector('#analysis-progress-fill');
     if (progressFill) progressFill.style.width = `${Math.min(100, Math.max(0, this.widgetState.progress || 0))}%`;
 
@@ -1845,10 +1845,10 @@ class HintFlowSidebar {
     // 3. Complexity boxes
     const timeVal = shadow.querySelector('#complexity-time-val');
     if (timeVal) timeVal.textContent = this.widgetState.timeComplexity || '-';
-    
+
     const spaceVal = shadow.querySelector('#complexity-space-val');
     if (spaceVal) spaceVal.textContent = this.widgetState.spaceComplexity || '-';
-    
+
     const improvBadge = shadow.querySelector('#complexity-improvable-badge');
     if (improvBadge) {
       if (this.widgetState.canImprove) {
@@ -1865,12 +1865,12 @@ class HintFlowSidebar {
     const activeTabKey = this.activeTab === 'analysis' ? 'hints' : this.activeTab;
     const textInput = this.shadowRoot.querySelector(`#chat-textarea-input-${activeTabKey}`);
     if (!textInput) return;
-    
+
     const userText = textInput.value.trim();
     if (!userText || this.isResponding) return;
 
     textInput.value = '';
-    
+
     this.histories[activeTabKey].push({
       role: 'user',
       text: userText,
@@ -1883,7 +1883,7 @@ class HintFlowSidebar {
 
   async triggerQuickAction(actionType, placeholderMessage) {
     if (this.isResponding) return;
-    
+
     const targetTab = this.activeTab === 'analysis' ? 'hints' : this.activeTab;
     this.histories[targetTab].push({
       role: 'user',
@@ -1898,13 +1898,13 @@ class HintFlowSidebar {
   setResponding(state) {
     this.isResponding = state;
     const activeTabKey = this.activeTab === 'analysis' ? 'hints' : this.activeTab;
-    
+
     const sendBtn = this.shadowRoot.querySelector(`#btn-send-message-${activeTabKey}`);
     const indicator = this.shadowRoot.querySelector(`#typing-indicator-${activeTabKey}`);
-    
+
     if (sendBtn) sendBtn.disabled = state;
     if (indicator) indicator.style.display = state ? 'flex' : 'none';
-    
+
     if (state) {
       const log = this.shadowRoot.querySelector(`#chat-messages-log-${activeTabKey}`);
       if (log) setTimeout(() => { log.scrollTop = log.scrollHeight; }, 50);
@@ -1981,7 +1981,7 @@ class HintFlowSidebar {
           hintLevel: calculatedHintLevel,
           hintText: result.hintText || result.chatMessage || 'Step-by-step guidance updated.'
         };
-        
+
         this.addModelResponse(result.chatMessage);
       } else {
         this.addModelResponse("⚠️ Failed to parse response from AI.");
@@ -2008,7 +2008,7 @@ class HintFlowSidebar {
 
   getSystemInstruction(mode, persona) {
     let personaDirective = "";
-    
+
     if (persona === 'interviewer') {
       personaDirective = `PERSONA: CHALLENGER (FAANG Senior Technical Interviewer)
 - Tone: Strict, sharp, analytical, demanding, professional.

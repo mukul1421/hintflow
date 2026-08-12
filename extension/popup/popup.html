@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HintFlow</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <img src="../assets/logo.png" alt="HintFlow Logo" class="popup-logo" />
+      <div class="popup-header-text">
+        <h2>HintFlow</h2>
+        <span class="popup-subtitle">LeetCode Problem Tracker</span>
+      </div>
+    </div>
+
+    <div class="stats-card">
+      <div class="stats-label">Problems Saved to Sheet</div>
+      <div class="stats-value" id="saved-count">0</div>
+    </div>
+
+    <div class="actions-section">
+      <button id="open-sheet-btn" class="btn btn-primary" disabled>
+        <span class="btn-icon">📊</span> Open Google Sheet
+      </button>
+
+      <button id="auth-btn" class="btn btn-secondary">
+        <span class="btn-icon">🔑</span> Connect Google Account
+      </button>
+    </div>
+
+    <div class="status-footer">
+      <span class="status-indicator" id="status-indicator"></span>
+      <span id="status-text">Checking authorization status...</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>
