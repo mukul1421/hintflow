@@ -114,6 +114,12 @@ class HintFlowSidebar {
     }
   }
 
+  open() {
+    if (!this.isOpen) {
+      this.toggle();
+    }
+  }
+
   addWelcomeMessage() {
     let welcome = "";
     if (this.activeTab === 'interviewer') {
@@ -1171,6 +1177,153 @@ class HintFlowSidebar {
           border-radius: 6px;
           background: rgba(255, 255, 255, 0.05);
         }
+
+        /* 3D Glassmorphic Excel Pushing Card Styles */
+        .hf-excel-card {
+          background: linear-gradient(135deg, #242424 0%, #1c1c1c 100%);
+          border: 1.5px solid rgba(255, 161, 22, 0.4);
+          border-radius: 12px;
+          padding: 16px;
+          width: 95%;
+          margin: 12px auto;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 161, 22, 0.1);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          animation: hf-fadeIn 0.3s ease-out;
+          align-self: center;
+        }
+        .hf-excel-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          padding-bottom: 8px;
+        }
+        .hf-excel-title {
+          font-weight: 700;
+          font-size: 14px;
+          color: #ffa116;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .hf-excel-badge {
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2.5px 8px;
+          border-radius: 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .hf-excel-badge.easy { background: rgba(0, 184, 163, 0.2); color: #00b8a3; border: 1px solid rgba(0, 184, 163, 0.4); }
+        .hf-excel-badge.medium { background: rgba(255, 161, 22, 0.2); color: #ffa116; border: 1px solid rgba(255, 161, 22, 0.4); }
+        .hf-excel-badge.hard { background: rgba(255, 55, 95, 0.2); color: #ff375f; border: 1px solid rgba(255, 55, 95, 0.4); }
+
+        .hf-excel-field {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+        }
+        .hf-excel-label {
+          font-size: 10px;
+          font-weight: 700;
+          color: #9ca3af;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .hf-excel-input {
+          background: #141414;
+          border: 1px solid #303030;
+          border-radius: 6px;
+          padding: 8px 12px;
+          color: #eff1f6;
+          font-family: inherit;
+          font-size: 12.5px;
+          outline: none;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+          transition: all 0.2s ease;
+        }
+        .hf-excel-input:focus {
+          border-color: #ffa116;
+          background: #181818;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(255, 161, 22, 0.2);
+        }
+        .hf-excel-textarea {
+          background: #141414;
+          border: 1px solid #303030;
+          border-radius: 6px;
+          padding: 8px 12px;
+          color: #eff1f6;
+          font-family: inherit;
+          font-size: 12.5px;
+          outline: none;
+          resize: vertical;
+          min-height: 54px;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+          transition: all 0.2s ease;
+        }
+        .hf-excel-textarea:focus {
+          border-color: #ffa116;
+          background: #181818;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(255, 161, 22, 0.2);
+        }
+        .hf-excel-btn {
+          width: 100%;
+          background: linear-gradient(180deg, #ffa116 0%, #e08b00 100%);
+          border: 1px solid #ffb84d;
+          border-top: 1px solid rgba(255, 255, 255, 0.4);
+          color: #141414;
+          font-weight: 700;
+          font-size: 13px;
+          padding: 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          box-shadow: 0 4px 12px rgba(255, 161, 22, 0.3), inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+        .hf-excel-btn:hover:not(:disabled) {
+          background: linear-gradient(180deg, #ffb84d 0%, #ffa116 100%);
+          transform: translateY(-1.5px);
+          box-shadow: 0 6px 16px rgba(255, 161, 22, 0.45);
+        }
+        .hf-excel-btn:disabled {
+          background: #1c1c1c;
+          border-color: #2a2a2a;
+          color: #4a4a4a;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+        .hf-excel-status {
+          font-size: 12px;
+          font-weight: 600;
+          text-align: center;
+          padding: 6px;
+          border-radius: 6px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .hf-excel-status-success { color: #00b8a3; }
+        .hf-excel-status-error { color: #ff375f; }
+        .hf-excel-close-btn {
+           background: transparent;
+           border: none;
+           color: #9ca3af;
+           cursor: pointer;
+           font-size: 14px;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           padding: 2px;
+           transition: color 0.2s ease;
+         }
+         .hf-excel-close-btn:hover {
+           color: #ff375f;
+         }
       </style>
 
       <!-- 3D Floating Toggle Button featuring the custom HintFlow Circuit Logo -->
@@ -1771,31 +1924,144 @@ class HintFlowSidebar {
     if (!log) return;
     log.innerHTML = '';
 
-    const messages = (this.histories[currentTab] || []).filter(msg => msg && msg.text && msg.text.trim());
+    const messages = (this.histories[currentTab] || []).filter(msg => msg && ((msg.text && msg.text.trim()) || msg.type === 'push_to_excel'));
     messages.forEach(msg => {
       const msgEl = document.createElement('div');
-      msgEl.className = `hf-msg ${msg.role === 'model' ? 'model' : 'user'}`;
 
-      const isModel = msg.role === 'model';
-      const isSystem = msg.text.startsWith('*System:');
-      const name = isModel ? (currentTab === 'interviewer' ? 'Interviewer' : 'AI Tutor') : 'You';
+      if (msg.type === 'push_to_excel') {
+        msgEl.className = 'hf-excel-card';
+        const diffLower = (msg.problemData.difficulty || 'medium').toLowerCase();
 
-      let formattedText = this.formatMarkdown(msg.text);
-
-      if (isSystem) {
-        msgEl.style.alignSelf = 'center';
-        msgEl.style.maxWidth = '95%';
-        msgEl.style.opacity = '0.9';
-        msgEl.innerHTML = `<div style="font-size: 11.5px; font-weight: 500; background: #1c1c1c; padding: 8px 16px; border-radius: 8px; border: 1px solid #303030; color: #ffa116; text-align: center;">${formattedText.replace(/\*System:\s*/i, '')}</div>`;
-      } else {
         msgEl.innerHTML = `
-          <div class="hf-msg-header">
-            <span class="hf-msg-avatar">${isModel ? '🤖' : '👤'}</span>
-            <span class="hf-msg-name">${name}</span>
-            <span class="hf-msg-time" style="font-weight: 400; opacity: 0.7; font-size: 10px; margin-left: 4px;">${msg.time}</span>
+          <div class="hf-excel-header">
+            <div class="hf-excel-title">
+              <span>🎉 Solution Accepted!</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="hf-excel-badge ${diffLower}">${msg.problemData.difficulty || 'Medium'}</span>
+              <button class="hf-excel-close-btn" title="Dismiss">✕</button>
+            </div>
           </div>
-          <div class="hf-msg-bubble">${formattedText}</div>
+          <div style="font-size: 13.5px; font-weight: 600; color: #ffffff; padding: 0 2px;">
+            ${msg.problemData.title}
+          </div>
+          <div class="hf-excel-field">
+            <label class="hf-excel-label">Time Taken (minutes)</label>
+            <input type="number" class="hf-excel-input" value="${msg.problemData.timeTakenMin || 1}" min="1" />
+          </div>
+          <div class="hf-excel-field">
+            <label class="hf-excel-label">Short Note (optional)</label>
+            <textarea class="hf-excel-textarea" placeholder="Key approach, complexity, hints used...">${msg.problemData.note || ''}</textarea>
+          </div>
+          <div class="hf-excel-actions" style="margin-top: 4px;">
+            <button class="hf-excel-btn" ${msg.isPushed ? 'disabled' : ''}>
+              ${msg.isPushed ? 'Saved to Excel ✓' : 'Push to Excel'}
+            </button>
+          </div>
+          <div class="hf-excel-status" style="display: ${msg.isPushed || msg.errorMessage ? 'block' : 'none'}; margin-top: 4px;">
+            ${msg.isPushed && msg.pushedUrl ? `<span class="hf-excel-status-success">Pushed! <a href="${msg.pushedUrl}" target="_blank" style="color: #00b8a3; text-decoration: underline;">View Sheet ↗</a></span>` : ''}
+            ${msg.errorMessage ? `<span class="hf-excel-status-error">Error: ${msg.errorMessage}</span>` : ''}
+          </div>
         `;
+
+        // Input listeners to capture user changes and sync across tabs
+        const timeInput = msgEl.querySelector('.hf-excel-input');
+        const noteInput = msgEl.querySelector('.hf-excel-textarea');
+        const pushBtn = msgEl.querySelector('.hf-excel-btn');
+        const statusDiv = msgEl.querySelector('.hf-excel-status');
+        const closeBtn = msgEl.querySelector('.hf-excel-close-btn');
+
+        closeBtn.addEventListener('click', () => {
+          // Remove from both histories by id
+          for (const tabKey of ['interviewer', 'hints']) {
+            this.histories[tabKey] = (this.histories[tabKey] || []).filter(m => m.id !== msg.id);
+          }
+          this.renderMessages();
+        });
+
+        timeInput.addEventListener('input', (e) => {
+          const val = Number(e.target.value) || 1;
+          msg.problemData.timeTakenMin = val;
+          // sync to other tabs silently
+          for (const tabKey of ['interviewer', 'hints']) {
+            const card = (this.histories[tabKey] || []).find(m => m.type === 'push_to_excel' && m.id === msg.id);
+            if (card) card.problemData.timeTakenMin = val;
+          }
+        });
+
+        noteInput.addEventListener('input', (e) => {
+          const val = e.target.value;
+          msg.problemData.note = val;
+          // sync to other tabs silently
+          for (const tabKey of ['interviewer', 'hints']) {
+            const card = (this.histories[tabKey] || []).find(m => m.type === 'push_to_excel' && m.id === msg.id);
+            if (card) card.problemData.note = val;
+          }
+        });
+
+        pushBtn.addEventListener('click', () => {
+          pushBtn.disabled = true;
+          pushBtn.textContent = 'Saving...';
+          statusDiv.innerHTML = '';
+          statusDiv.style.display = 'none';
+
+          const today = new Date().toISOString().split("T")[0];
+          const payload = {
+            date: today,
+            problem: msg.problemData.title,
+            difficulty: msg.problemData.difficulty || 'Medium',
+            language: msg.problemData.language || '',
+            timeTaken: msg.problemData.timeTakenMin,
+            note: (msg.problemData.note || '').trim()
+          };
+
+          chrome.runtime.sendMessage({ action: 'SAVE_TO_SHEET', payload }, (response) => {
+            if (chrome.runtime.lastError) {
+              this.syncExcelCardState(msg.id, {
+                isPushed: false,
+                errorMessage: chrome.runtime.lastError.message
+              });
+              return;
+            }
+
+            if (response && response.success) {
+              this.syncExcelCardState(msg.id, {
+                isPushed: true,
+                pushedUrl: response.spreadsheetUrl,
+                errorMessage: null
+              });
+            } else {
+              this.syncExcelCardState(msg.id, {
+                isPushed: false,
+                errorMessage: response?.error || 'Failed to save to Google Sheet.'
+              });
+            }
+          });
+        });
+      } else {
+        msgEl.className = `hf-msg ${msg.role === 'model' ? 'model' : 'user'}`;
+
+        const isModel = msg.role === 'model';
+        const isSystem = msg.text.startsWith('*System:');
+        const name = isModel ? (currentTab === 'interviewer' ? 'Interviewer' : 'AI Tutor') : 'You';
+
+        let formattedText = this.formatMarkdown(msg.text);
+
+        if (isSystem) {
+          msgEl.style.alignSelf = 'center';
+          msgEl.style.maxWidth = '95%';
+          msgEl.style.opacity = '0.9';
+          msgEl.innerHTML = `<div style="font-size: 11.5px; font-weight: 500; background: #1c1c1c; padding: 8px 16px; border-radius: 8px; border: 1px solid #303030; color: #ffa116; text-align: center;">${formattedText.replace(/\*System:\s*/i, '')}</div>`;
+        } else {
+          msgEl.innerHTML = `
+            <div class="hf-msg-header">
+              <span class="hf-msg-avatar">${isModel ? '🤖' : '👤'}</span>
+              <span class="hf-msg-name">${name}</span>
+              <span class="hf-msg-time" style="font-weight: 400; opacity: 0.7; font-size: 10px; margin-left: 4px;">${msg.time}</span>
+            </div>
+            <div class="hf-msg-bubble">${formattedText}</div>
+          `;
+        }
       }
       log.appendChild(msgEl);
     });
@@ -2004,6 +2270,55 @@ class HintFlowSidebar {
     });
     this.renderMessages();
     this.updateWidgets();
+  }
+
+  addPushToExcelCard(problemData) {
+    const cardId = `push_excel_${Date.now()}`;
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    for (const tabKey of ['interviewer', 'hints']) {
+      // Avoid duplicate active push cards for same slug
+      const exists = (this.histories[tabKey] || []).some(
+        m => m.type === 'push_to_excel' && m.problemData.slug === problemData.slug && !m.isPushed
+      );
+      if (!exists) {
+        this.histories[tabKey].push({
+          role: 'system_card',
+          type: 'push_to_excel',
+          time,
+          problemData: {
+            title: problemData.title,
+            difficulty: problemData.difficulty,
+            timeTakenMin: problemData.timeTakenMin,
+            note: problemData.note || '',
+            slug: problemData.slug,
+            language: problemData.language || ''
+          },
+          id: cardId,
+          isPushed: false,
+          pushedUrl: null,
+          errorMessage: null
+        });
+      }
+    }
+    this.open();
+    this.renderMessages();
+  }
+
+  syncExcelCardState(cardId, updates) {
+    for (const tabKey of ['interviewer', 'hints']) {
+      const history = this.histories[tabKey] || [];
+      const card = history.find(m => m.type === 'push_to_excel' && m.id === cardId);
+      if (card) {
+        if (updates.timeTakenMin !== undefined) card.problemData.timeTakenMin = updates.timeTakenMin;
+        if (updates.note !== undefined) card.problemData.note = updates.note;
+        if (updates.isPushed !== undefined) card.isPushed = updates.isPushed;
+        if (updates.pushedUrl !== undefined) card.pushedUrl = updates.pushedUrl;
+        if (updates.errorMessage !== undefined) card.errorMessage = updates.errorMessage;
+        if (updates.language !== undefined) card.problemData.language = updates.language;
+      }
+    }
+    // Re-render to show updated visual states across all tabs
+    this.renderMessages();
   }
 
   getSystemInstruction(mode, persona) {

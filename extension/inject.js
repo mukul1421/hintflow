@@ -52,9 +52,4 @@
   window.addEventListener("hintflow:request-code", () => {
     checkAndNotify(true);
   });
-
-  // Clean up if page is destroyed (popstate/unload)
-  window.addEventListener("unload", () => {
-    clearInterval(intervalId);
-  });
 })();

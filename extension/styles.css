@@ -23,8 +23,10 @@ body.hintflow-sidebar-open .main-content {
   right: 0;
   width: 0;
   height: 100vh;
-  z-index: 2147483647; /* Maximum possible z-index to stay on top of everything */
-  pointer-events: none; /* Let clicks through unless hitting sidebar elements inside shadow DOM */
+  z-index: 2147483647;
+  /* Maximum possible z-index to stay on top of everything */
+  pointer-events: none;
+  /* Let clicks through unless hitting sidebar elements inside shadow DOM */
 }
 
 /* Save to HintFlow Floating Card */
@@ -48,6 +50,7 @@ body.hintflow-sidebar-open .main-content {
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -162,4 +165,34 @@ body.hintflow-sidebar-open .main-content {
 
 .hintflow-status-error {
   color: #f87171;
+}
+
+display: inline-flex;
+align-items: center;
+gap: 6px;
+transition: all 0.2s ease;
+}
+
+.hintflow-btn-primary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.hintflow-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hintflow-status-msg {
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.hintflow-status-success {
+  color: #2cbb5d;
+}
+
+.hintflow-status-error {
+  color: #ff2d55;
 }

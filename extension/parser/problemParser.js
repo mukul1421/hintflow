@@ -148,6 +148,27 @@
     }
 
     findDifficultyFromDom() {
+      // 1. Direct query of text difficulty classes
+      const easyEl = this.document.querySelector('.text-difficulty-easy, .text-easy, .text-sd-easy-500, [class*="-easy"]');
+      const medEl = this.document.querySelector('.text-difficulty-medium, .text-medium, .text-sd-medium-500, [class*="-medium"]');
+      const hardEl = this.document.querySelector('.text-difficulty-hard, .text-hard, .text-sd-hard-500, [class*="-hard"]');
+      
+      if (easyEl && (easyEl.textContent || "").trim().toLowerCase() === "easy") return "Easy";
+      if (medEl && (medEl.textContent || "").trim().toLowerCase() === "medium") return "Medium";
+      if (hardEl && (hardEl.textContent || "").trim().toLowerCase() === "hard") return "Hard";
+
+      // 2. Scan leaf divs or spans for exact text fallback
+      const elements = this.document.querySelectorAll('div, span');
+      for (const el of elements) {
+        if (el.children.length === 0) {
+          const text = (el.textContent || "").trim();
+          if (text === "Easy") return "Easy";
+          if (text === "Medium") return "Medium";
+          if (text === "Hard") return "Hard";
+        }
+      }
+
+      // 3. Fallback to description parser queryTextNodes
       const candidates = this.parent.descriptionParser.queryTextNodes([
         /difficulty\s*[:\-]?\s*(easy|medium|hard)/i,
         /^(easy|medium|hard)$/i,
@@ -155,13 +176,18 @@
 
       for (const candidate of candidates) {
         const difficulty = this.extractDifficultyFromText(candidate);
-
         if (difficulty) {
           return difficulty;
         }
       }
 
       return "";
+    }
+
+    getProblemNumber() {
+      const h1Text = this.document.querySelector("h1")?.textContent || "";
+      const match = h1Text.match(/^(\d+)\./);
+      return match ? match[1] : "";
     }
   }
 

@@ -34,6 +34,10 @@
       return this.problemParser.getDifficulty();
     }
 
+    getProblemNumber() {
+      return this.problemParser.getProblemNumber();
+    }
+
     getDescription() {
       return this.descriptionParser.getDescription();
     }

@@ -4,7 +4,7 @@
  */
 
 const SPREADSHEET_TITLE = "HintFlow — LeetCode Tracker";
-const SHEET_HEADERS = ["Date", "Problem", "Difficulty", "Time Taken (min)", "Note"];
+const SHEET_HEADERS = ["Date", "Problem", "Difficulty", "Language", "Time Taken (min)", "Note"];
 const STORAGE_KEYS = {
   SPREADSHEET_ID: "hintflow_spreadsheet_id",
   SAVED_COUNT: "hintflow_saved_count",
@@ -65,6 +65,269 @@ async function fetchWithAuth(url, options = {}) {
 }
 
 /**
+ * Helper to convert Hex color code to RGB color object for Sheets API (values 0 to 1)
+ */
+function hexToRgbColor(hex) {
+  const clean = hex.replace("#", "");
+  const r = parseInt(clean.substring(0, 2), 16) / 255;
+  const g = parseInt(clean.substring(2, 4), 16) / 255;
+  const b = parseInt(clean.substring(4, 6), 16) / 255;
+  return { red: r, green: g, blue: b };
+}
+
+/**
+ * Get sheet ID from the spreadsheet (backwards compatible for existing sheets)
+ */
+async function getSheetId(spreadsheetId) {
+  const stored = await chrome.storage.local.get(["hintflow_sheet_id"]);
+  if (stored.hintflow_sheet_id !== undefined) {
+    return stored.hintflow_sheet_id;
+  }
+  console.log("[HintFlow] Fetching sheet metadata for ID recovery...");
+  const res = await fetchWithAuth(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`);
+  if (!res.ok) {
+    throw new Error(`Failed to get sheet metadata: ${res.status}`);
+  }
+  const data = await res.json();
+  const sheetId = data.sheets?.[0]?.properties?.sheetId || 0;
+  await chrome.storage.local.set({ hintflow_sheet_id: sheetId });
+  return sheetId;
+}
+
+/**
+ * Construct batchUpdate requests to style headers, size columns, format cells, and create color badges
+ */
+function formatRowRequest(sheetId, rowIndex, difficulty) {
+  let diffBg = "#F3F4F6";
+  let diffFg = "#374151";
+  const normalizedDiff = (difficulty || "Medium").toLowerCase().trim();
+  if (normalizedDiff === "easy") {
+    diffBg = "#DEF7EC"; // Soft Green
+    diffFg = "#03543F"; // Dark Green
+  } else if (normalizedDiff === "medium") {
+    diffBg = "#FEF3C7"; // Soft Orange
+    diffFg = "#92400E"; // Dark Orange
+  } else if (normalizedDiff === "hard") {
+    diffBg = "#FDE8E8"; // Soft Red
+    diffFg = "#9B1C1C"; // Dark Red
+  }
+
+  return [
+    // 1. Header Row Formatting (bold, white text, Slate background)
+    {
+      repeatCell: {
+        range: {
+          sheetId: sheetId,
+          startRowIndex: 0,
+          endRowIndex: 1,
+          startColumnIndex: 0,
+          endColumnIndex: 6
+        },
+        cell: {
+          userEnteredFormat: {
+            backgroundColor: hexToRgbColor("#1E293B"),
+            textFormat: {
+              foregroundColor: hexToRgbColor("#FFFFFF"),
+              fontSize: 11,
+              bold: true,
+              fontFamily: "Arial"
+            },
+            horizontalAlignment: "CENTER",
+            verticalAlignment: "MIDDLE"
+          }
+        },
+        fields: "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment,verticalAlignment)"
+      }
+    },
+    // 2. Set Column Widths (A: Date, B: Problem, C: Difficulty, D: Language, E: Time Taken, F: Note)
+    {
+      updateDimensionProperties: {
+        range: { sheetId: sheetId, dimension: "COLUMNS", startIndex: 0, endIndex: 1 },
+        properties: { pixelSize: 110 },
+        fields: "pixelSize"
+      }
+    },
+    {
+      updateDimensionProperties: {
+        range: { sheetId: sheetId, dimension: "COLUMNS", startIndex: 1, endIndex: 2 },
+        properties: { pixelSize: 260 },
+        fields: "pixelSize"
+      }
+    },
+    {
+      updateDimensionProperties: {
+        range: { sheetId: sheetId, dimension: "COLUMNS", startIndex: 2, endIndex: 3 },
+        properties: { pixelSize: 110 },
+        fields: "pixelSize"
+      }
+    },
+    {
+      updateDimensionProperties: {
+        range: { sheetId: sheetId, dimension: "COLUMNS", startIndex: 3, endIndex: 4 },
+        properties: { pixelSize: 100 },
+        fields: "pixelSize"
+      }
+    },
+    {
+      updateDimensionProperties: {
+        range: { sheetId: sheetId, dimension: "COLUMNS", startIndex: 4, endIndex: 5 },
+        properties: { pixelSize: 140 },
+        fields: "pixelSize"
+      }
+    },
+    {
+      updateDimensionProperties: {
+        range: { sheetId: sheetId, dimension: "COLUMNS", startIndex: 5, endIndex: 6 },
+        properties: { pixelSize: 350 },
+        fields: "pixelSize"
+      }
+    },
+    // 3. Base cell format for data row (font Arial 10, vertical align middle)
+    {
+      repeatCell: {
+        range: {
+          sheetId: sheetId,
+          startRowIndex: rowIndex,
+          endRowIndex: rowIndex + 1,
+          startColumnIndex: 0,
+          endColumnIndex: 6
+        },
+        cell: {
+          userEnteredFormat: {
+            textFormat: {
+              foregroundColor: hexToRgbColor("#1F2937"),
+              fontSize: 10,
+              fontFamily: "Arial"
+            },
+            verticalAlignment: "MIDDLE"
+          }
+        },
+        fields: "userEnteredFormat(textFormat,verticalAlignment)"
+      }
+    },
+    // 4. Center Date
+    {
+      repeatCell: {
+        range: {
+          sheetId: sheetId,
+          startRowIndex: rowIndex,
+          endRowIndex: rowIndex + 1,
+          startColumnIndex: 0,
+          endColumnIndex: 1
+        },
+        cell: {
+          userEnteredFormat: {
+            horizontalAlignment: "CENTER"
+          }
+        },
+        fields: "userEnteredFormat(horizontalAlignment)"
+      }
+    },
+    // 5. Bold and Left-align Problem Title
+    {
+      repeatCell: {
+        range: {
+          sheetId: sheetId,
+          startRowIndex: rowIndex,
+          endRowIndex: rowIndex + 1,
+          startColumnIndex: 1,
+          endColumnIndex: 2
+        },
+        cell: {
+          userEnteredFormat: {
+            textFormat: {
+              bold: true,
+              foregroundColor: hexToRgbColor("#111827")
+            },
+            horizontalAlignment: "LEFT"
+          }
+        },
+        fields: "userEnteredFormat(textFormat,horizontalAlignment)"
+      }
+    },
+    // 6. Style Difficulty as a beautiful badge
+    {
+      repeatCell: {
+        range: {
+          sheetId: sheetId,
+          startRowIndex: rowIndex,
+          endRowIndex: rowIndex + 1,
+          startColumnIndex: 2,
+          endColumnIndex: 3
+        },
+        cell: {
+          userEnteredFormat: {
+            backgroundColor: hexToRgbColor(diffBg),
+            textFormat: {
+              bold: true,
+              foregroundColor: hexToRgbColor(diffFg),
+              fontSize: 10
+            },
+            horizontalAlignment: "CENTER"
+          }
+        },
+        fields: "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)"
+      }
+    },
+    // 7. Center Language
+    {
+      repeatCell: {
+        range: {
+          sheetId: sheetId,
+          startRowIndex: rowIndex,
+          endRowIndex: rowIndex + 1,
+          startColumnIndex: 3,
+          endColumnIndex: 4
+        },
+        cell: {
+          userEnteredFormat: {
+            horizontalAlignment: "CENTER"
+          }
+        },
+        fields: "userEnteredFormat(horizontalAlignment)"
+      }
+    },
+    // 8. Center Time Taken
+    {
+      repeatCell: {
+        range: {
+          sheetId: sheetId,
+          startRowIndex: rowIndex,
+          endRowIndex: rowIndex + 1,
+          startColumnIndex: 4,
+          endColumnIndex: 5
+        },
+        cell: {
+          userEnteredFormat: {
+            horizontalAlignment: "CENTER"
+          }
+        },
+        fields: "userEnteredFormat(horizontalAlignment)"
+      }
+    },
+    // 9. Wrap Note
+    {
+      repeatCell: {
+        range: {
+          sheetId: sheetId,
+          startRowIndex: rowIndex,
+          endRowIndex: rowIndex + 1,
+          startColumnIndex: 5,
+          endColumnIndex: 6
+        },
+        cell: {
+          userEnteredFormat: {
+            horizontalAlignment: "LEFT",
+            wrapStrategy: "WRAP"
+          }
+        },
+        fields: "userEnteredFormat(horizontalAlignment,wrapStrategy)"
+      }
+    }
+  ];
+}
+
+/**
  * Get existing spreadsheetId from storage, or auto-create a new Google Sheet
  */
 async function getOrCreateSpreadsheet() {
@@ -99,10 +362,17 @@ async function getOrCreateSpreadsheet() {
 
   const sheetData = await createRes.json();
   const spreadsheetId = sheetData.spreadsheetId;
+  const sheetId = sheetData.sheets?.[0]?.properties?.sheetId || 0;
+
+  // Save spreadsheetId and sheetId to chrome.storage.local
+  await chrome.storage.local.set({ 
+    [STORAGE_KEYS.SPREADSHEET_ID]: spreadsheetId,
+    hintflow_sheet_id: sheetId
+  });
 
   // 2. Set header row
   const headerRes = await fetchWithAuth(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:E1?valueInputOption=USER_ENTERED`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:F1?valueInputOption=USER_ENTERED`,
     {
       method: "PUT",
       body: JSON.stringify({
@@ -115,29 +385,88 @@ async function getOrCreateSpreadsheet() {
     console.warn("[HintFlow] Warning: Failed to write headers to new sheet.", await headerRes.text());
   }
 
-  // 3. Save spreadsheetId to chrome.storage.local
-  await chrome.storage.local.set({ [STORAGE_KEYS.SPREADSHEET_ID]: spreadsheetId });
   return spreadsheetId;
 }
 
 /**
- * Append problem row to the Google Sheet
+ * Check if the first row matches SHEET_HEADERS. If not (e.g. existing spreadsheets), update it.
  */
-async function appendProblemRow(data) {
-  const { date, problem, difficulty, timeTaken, note } = data;
-  const spreadsheetId = await getOrCreateSpreadsheet();
+async function ensureHeadersAreUpToDate(spreadsheetId) {
+  try {
+    const headerUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:F1`;
+    const res = await fetchWithAuth(headerUrl);
+    if (res.ok) {
+      const data = await res.json();
+      const currentHeaders = data.values?.[0] || [];
+      const needsUpdate = currentHeaders.length !== SHEET_HEADERS.length ||
+        currentHeaders.some((val, idx) => val !== SHEET_HEADERS[idx]);
 
+      if (needsUpdate) {
+        console.log("[HintFlow] Sheet headers are missing or outdated. Self-healing/updating schema...");
+        const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:F1?valueInputOption=USER_ENTERED`;
+        await fetchWithAuth(updateUrl, {
+          method: "PUT",
+          body: JSON.stringify({ values: [SHEET_HEADERS] })
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[HintFlow] Failed to check/repair headers:", err);
+  }
+}
+
+/**
+ * Append problem row to the Google Sheet and format it professionally
+ */
+async function appendProblemRowInternal(data) {
+  const { date, problem, difficulty, language, timeTaken, note } = data;
+  const spreadsheetId = await getOrCreateSpreadsheet();
+  
+  // Auto-heal/align spreadsheet headers if they are outdated or missing
+  await ensureHeadersAreUpToDate(spreadsheetId);
+
+  const sheetId = await getSheetId(spreadsheetId);
+
+  // 1. Append row
   const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:append?valueInputOption=USER_ENTERED`;
   const appendRes = await fetchWithAuth(appendUrl, {
     method: "POST",
     body: JSON.stringify({
-      values: [[date, problem, difficulty, timeTaken, note || ""]],
+      values: [[date, problem, difficulty, language || "", timeTaken, note || ""]],
     }),
   });
 
   if (!appendRes.ok) {
     const errText = await appendRes.text();
     throw new Error(`Failed to append row to Google Sheet: ${appendRes.status} ${errText}`);
+  }
+
+  const appendData = await appendRes.json();
+
+  // 2. Apply professional formatting to the appended row
+  try {
+    const updatedRange = appendData.updates?.updatedRange;
+    if (updatedRange) {
+      const match = updatedRange.match(/A(\d+):[A-Z]+(\d+)/);
+      if (match) {
+        const rowNumber = parseInt(match[1]);
+        const rowIndex = rowNumber - 1; // 0-based
+        console.log(`[HintFlow] Formatting newly appended row at index ${rowIndex}...`);
+        
+        const requests = formatRowRequest(sheetId, rowIndex, difficulty);
+        const formatUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`;
+        const formatRes = await fetchWithAuth(formatUrl, {
+          method: "POST",
+          body: JSON.stringify({ requests }),
+        });
+
+        if (!formatRes.ok) {
+          console.warn("[HintFlow] Warning: Failed to apply formatting to row.", await formatRes.text());
+        }
+      }
+    }
+  } catch (formatErr) {
+    console.error("[HintFlow] Error styling appended row:", formatErr);
   }
 
   // Update saved count in local storage
@@ -151,6 +480,21 @@ async function appendProblemRow(data) {
     spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
     savedCount: newCount,
   };
+}
+
+async function appendProblemRow(data) {
+  try {
+    return await appendProblemRowInternal(data);
+  } catch (err) {
+    const errMsg = (err.message || "").toLowerCase();
+    // If the spreadsheet was deleted/not found/denied, clear local cache and retry once to auto-create a new sheet
+    if (errMsg.includes("404") || errMsg.includes("not found") || errMsg.includes("403") || errMsg.includes("notfound")) {
+      console.warn("[HintFlow] Cached Google Sheet was deleted or is inaccessible. Clearing cache and re-creating...");
+      await chrome.storage.local.remove([STORAGE_KEYS.SPREADSHEET_ID, "hintflow_sheet_id"]);
+      return await appendProblemRowInternal(data);
+    }
+    throw err;
+  }
 }
 
 // Handle incoming messages from content scripts and popup UI

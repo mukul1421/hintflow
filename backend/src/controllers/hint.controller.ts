@@ -8,10 +8,10 @@ export const generateHint = async (req: Request, res: Response): Promise<void> =
 
     let result;
     if (provider === "groq") {
-      const apiKey = (req.headers["authorization"]?.toString().replace("Bearer ", "") || 
-                      req.headers["x-api-key"]?.toString() || 
-                      settings?.groqApiKey ||
-                      process.env.GROQ_API_KEY) as string;
+      const apiKey = (req.headers["authorization"]?.toString().replace("Bearer ", "") ||
+        req.headers["x-api-key"]?.toString() ||
+        settings?.groqApiKey ||
+        process.env.GROQ_API_KEY) as string;
 
       if (!apiKey) {
         res.status(400).json({ error: "Groq API key is required. Provide it in settings, X-API-KEY header, or as BEARER token." });
@@ -30,10 +30,10 @@ export const generateHint = async (req: Request, res: Response): Promise<void> =
         action || ""
       );
     } else {
-      const apiKey = (req.headers["authorization"]?.toString().replace("Bearer ", "") || 
-                      req.headers["x-api-key"]?.toString() || 
-                      settings?.geminiApiKey ||
-                      process.env.GEMINI_API_KEY) as string;
+      const apiKey = (req.headers["authorization"]?.toString().replace("Bearer ", "") ||
+        req.headers["x-api-key"]?.toString() ||
+        settings?.geminiApiKey ||
+        process.env.GEMINI_API_KEY) as string;
 
       if (!apiKey) {
         res.status(400).json({ error: "Gemini API key is required. Provide it in settings, X-API-KEY header, or as BEARER token." });
