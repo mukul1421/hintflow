@@ -10,6 +10,8 @@ class HintFlowSidebar {
     this.currentCode = "";
     this.currentLanguage = "";
     this.isResponding = false;
+    this.activeAcceptedData = null;
+    this.sheetMode = 'existing';
 
     // Logo Asset URL
     this.logoUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL
@@ -24,12 +26,11 @@ class HintFlowSidebar {
 
     // Settings configuration
     this.settings = {
-      provider: 'gemini', // 'gemini' | 'groq' | 'backend'
+      provider: 'gemini', // 'gemini' | 'groq'
       geminiApiKey: '',
-      geminiModel: 'gemini-2.5-flash',
+      geminiModel: 'gemini-3.6-flash',
       groqApiKey: '',
       groqModel: 'llama-3.3-70b-versatile',
-      backendUrl: 'http://localhost:3000/api/hint',
       persona: 'interviewer'
     };
 
@@ -1178,152 +1179,402 @@ class HintFlowSidebar {
           background: rgba(255, 255, 255, 0.05);
         }
 
-        /* 3D Glassmorphic Excel Pushing Card Styles */
-        .hf-excel-card {
-          background: linear-gradient(135deg, #242424 0%, #1c1c1c 100%);
-          border: 1.5px solid rgba(255, 161, 22, 0.4);
-          border-radius: 12px;
-          padding: 16px;
-          width: 95%;
-          margin: 12px auto;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 161, 22, 0.1);
+        /* LeetCode Themed Accepted Solution Modal Overlay */
+        .hf-accepted-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(18, 18, 18, 0.96);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          z-index: 120;
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          animation: hf-fadeIn 0.3s ease-out;
-          align-self: center;
+          padding: 24px;
+          transform: translateY(100%);
+          transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .hf-excel-header {
+
+        .hf-accepted-overlay.open {
+          transform: translateY(0);
+        }
+
+        .hf-accepted-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          padding-bottom: 8px;
+          padding-bottom: 12px;
+          border-bottom: 1px solid #2e2e2e;
+          margin-bottom: 14px;
         }
-        .hf-excel-title {
-          font-weight: 700;
-          font-size: 14px;
-          color: #ffa116;
+
+        .hf-accepted-title-badge {
           display: flex;
           align-items: center;
-          gap: 6px;
-        }
-        .hf-excel-badge {
-          font-size: 10px;
+          gap: 8px;
+          font-size: 15px;
           font-weight: 700;
-          padding: 2.5px 8px;
-          border-radius: 6px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
+          color: #2cbb5d;
         }
-        .hf-excel-badge.easy { background: rgba(0, 184, 163, 0.2); color: #00b8a3; border: 1px solid rgba(0, 184, 163, 0.4); }
-        .hf-excel-badge.medium { background: rgba(255, 161, 22, 0.2); color: #ffa116; border: 1px solid rgba(255, 161, 22, 0.4); }
-        .hf-excel-badge.hard { background: rgba(255, 55, 95, 0.2); color: #ff375f; border: 1px solid rgba(255, 55, 95, 0.4); }
 
-        .hf-excel-field {
+        .hf-accepted-body {
+          flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 5px;
+          gap: 14px;
+          overflow-y: auto;
+          padding-right: 2px;
         }
-        .hf-excel-label {
+
+        .hf-accepted-problem-card {
+          background: #262626;
+          border: 1px solid #383838;
+          border-radius: 10px;
+          padding: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .hf-accepted-problem-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .hf-accepted-problem-name {
+          font-size: 14px;
+          font-weight: 700;
+          color: #eff1f6;
+          line-height: 1.3;
+        }
+
+        .hf-diff-badge {
+          font-size: 11px;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 9999px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          flex-shrink: 0;
+        }
+
+        .hf-diff-badge.easy {
+          background: rgba(0, 184, 163, 0.15);
+          color: #00b8a3;
+          border: 1px solid rgba(0, 184, 163, 0.35);
+        }
+
+        .hf-diff-badge.medium {
+          background: rgba(255, 161, 22, 0.15);
+          color: #ffa116;
+          border: 1px solid rgba(255, 161, 22, 0.35);
+        }
+
+        .hf-diff-badge.hard {
+          background: rgba(255, 55, 95, 0.15);
+          color: #ff375f;
+          border: 1px solid rgba(255, 55, 95, 0.35);
+        }
+
+        .hf-metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+        }
+
+        .hf-metric-card {
+          background: #1e1e1e;
+          border: 1px solid #333333;
+          border-radius: 8px;
+          padding: 8px 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .hf-metric-label {
           font-size: 10px;
+          font-weight: 600;
+          color: #8c8c8c;
+          text-transform: uppercase;
+          letter-spacing: 0.4px;
+        }
+
+        .hf-metric-value {
+          font-size: 13px;
+          font-weight: 700;
+          color: #ffffff;
+        }
+
+        .hf-metric-beats {
+          font-size: 10.5px;
+          font-weight: 600;
+          color: #2cbb5d;
+        }
+
+        .hf-accepted-field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .hf-accepted-label {
+          font-size: 11px;
           font-weight: 700;
           color: #9ca3af;
+          letter-spacing: 0.3px;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
         }
-        .hf-excel-input {
-          background: #141414;
+
+        .hf-accepted-input {
+          background: #181818;
           border: 1px solid #303030;
-          border-radius: 6px;
-          padding: 8px 12px;
+          border-radius: 7px;
+          padding: 10px 14px;
           color: #eff1f6;
           font-family: inherit;
           font-size: 12.5px;
           outline: none;
-          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
           transition: all 0.2s ease;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
         }
-        .hf-excel-input:focus {
-          border-color: #ffa116;
+
+        .hf-accepted-input:focus {
+          border-color: #2cbb5d;
+          background: #1e1e1e;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(44, 187, 93, 0.2);
+        }
+
+        .hf-accepted-textarea {
           background: #181818;
-          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(255, 161, 22, 0.2);
-        }
-        .hf-excel-textarea {
-          background: #141414;
           border: 1px solid #303030;
-          border-radius: 6px;
-          padding: 8px 12px;
+          border-radius: 7px;
+          padding: 10px 14px;
           color: #eff1f6;
           font-family: inherit;
           font-size: 12.5px;
           outline: none;
           resize: vertical;
-          min-height: 54px;
-          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+          min-height: 64px;
           transition: all 0.2s ease;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
         }
-        .hf-excel-textarea:focus {
-          border-color: #ffa116;
-          background: #181818;
-          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(255, 161, 22, 0.2);
+
+        .hf-accepted-textarea:focus {
+          border-color: #2cbb5d;
+          background: #1e1e1e;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(44, 187, 93, 0.2);
         }
-        .hf-excel-btn {
-          width: 100%;
-          background: linear-gradient(180deg, #ffa116 0%, #e08b00 100%);
-          border: 1px solid #ffb84d;
-          border-top: 1px solid rgba(255, 255, 255, 0.4);
-          color: #141414;
-          font-weight: 700;
-          font-size: 13px;
-          padding: 10px;
+
+        .hf-sheet-dest-card {
+          background: #232323;
+          border: 1px solid #363636;
+          border-radius: 9px;
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .hf-sheet-dest-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .hf-sheet-mode-segmented {
+          display: flex;
+          background: #141414;
+          padding: 2px;
           border-radius: 6px;
+          border: 1px solid #333333;
+          gap: 2px;
+        }
+
+        .hf-sheet-mode-btn {
+          background: transparent;
+          border: none;
+          color: #9ca3af;
+          font-size: 11px;
+          font-weight: 600;
+          padding: 4px 10px;
+          border-radius: 5px;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.2s;
+        }
+
+        .hf-sheet-mode-btn.active {
+          background: #333333;
+          color: #ffffff;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+        }
+
+        .hf-sheet-select-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .hf-accepted-select {
+          flex: 1;
+          background: #181818;
+          border: 1px solid #383838;
+          border-radius: 6px;
+          padding: 8px 10px;
+          color: #eff1f6;
+          font-size: 12px;
+          font-family: inherit;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+
+        .hf-accepted-select:focus {
+          border-color: #2cbb5d;
+        }
+
+        .hf-sheet-open-link-btn {
+          background: rgba(44, 187, 93, 0.12);
+          border: 1px solid rgba(44, 187, 93, 0.35);
+          color: #2cbb5d;
+          padding: 7px 12px;
+          border-radius: 6px;
+          font-size: 11.5px;
+          font-weight: 700;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          white-space: nowrap;
+          transition: all 0.2s;
+        }
+
+        .hf-sheet-open-link-btn:hover {
+          background: rgba(44, 187, 93, 0.22);
+          border-color: #2cbb5d;
+          color: #34d368;
+        }
+
+        .hf-previous-sheets-wrapper {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          margin-top: 4px;
+          padding-top: 8px;
+          border-top: 1px solid #303030;
+        }
+
+        .hf-previous-sheets-title {
+          font-size: 10px;
+          font-weight: 700;
+          color: #888888;
+          text-transform: uppercase;
+          letter-spacing: 0.4px;
+        }
+
+        .hf-previous-sheets-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          max-height: 80px;
+          overflow-y: auto;
+        }
+
+        .hf-sheet-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          background: #181818;
+          border: 1px solid #333333;
+          border-radius: 5px;
+          padding: 3px 8px;
+          font-size: 11px;
+          color: #cccccc;
+          text-decoration: none;
+          transition: all 0.2s;
+          cursor: pointer;
+        }
+
+        .hf-sheet-pill:hover {
+          border-color: #2cbb5d;
+          color: #2cbb5d;
+          background: rgba(44, 187, 93, 0.08);
+        }
+
+        .hf-sheet-pill-active {
+          border-color: #2cbb5d;
+          color: #2cbb5d;
+          background: rgba(44, 187, 93, 0.12);
+        }
+
+        .hf-accepted-sublabel {
+          font-size: 10.5px;
+          font-weight: 600;
+          color: #9ca3af;
+          text-transform: uppercase;
+          margin-bottom: 2px;
+          display: block;
+        }
+
+        .hf-sheet-help-text {
+          font-size: 11px;
+          color: #888888;
+          line-height: 1.4;
+          margin-top: 4px;
+        }
+
+        .hf-accepted-footer {
+          margin-top: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+
+        .hf-accepted-btn-push {
+          background: linear-gradient(180deg, #2cbb5d 0%, #22994b 100%);
+          border: 1px solid #34d368;
+          color: #ffffff;
+          padding: 12px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 6px;
-          box-shadow: 0 4px 12px rgba(255, 161, 22, 0.3), inset 0 1px 0 rgba(255,255,255,0.3);
+          gap: 8px;
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 14px rgba(44, 187, 93, 0.35);
         }
-        .hf-excel-btn:hover:not(:disabled) {
-          background: linear-gradient(180deg, #ffb84d 0%, #ffa116 100%);
-          transform: translateY(-1.5px);
-          box-shadow: 0 6px 16px rgba(255, 161, 22, 0.45);
+
+        .hf-accepted-btn-push:hover:not(:disabled) {
+          background: linear-gradient(180deg, #34d368 0%, #2cbb5d 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 6px 18px rgba(44, 187, 93, 0.45);
         }
-        .hf-excel-btn:disabled {
-          background: #1c1c1c;
-          border-color: #2a2a2a;
-          color: #4a4a4a;
+
+        .hf-accepted-btn-push:disabled {
+          background: #252525;
+          border-color: #353535;
+          color: #666666;
           cursor: not-allowed;
           box-shadow: none;
+          transform: none;
         }
-        .hf-excel-status {
+
+        .hf-accepted-status {
           font-size: 12px;
-          font-weight: 600;
           text-align: center;
-          padding: 6px;
+          font-weight: 600;
+          padding: 8px 12px;
           border-radius: 6px;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .hf-excel-status-success { color: #00b8a3; }
-        .hf-excel-status-error { color: #ff375f; }
-        .hf-excel-close-btn {
-           background: transparent;
-           border: none;
-           color: #9ca3af;
-           cursor: pointer;
-           font-size: 14px;
-           display: flex;
-           align-items: center;
-           justify-content: center;
-           padding: 2px;
-           transition: color 0.2s ease;
-         }
-         .hf-excel-close-btn:hover {
-           color: #ff375f;
-         }
+        .hf-accepted-status-success { color: #2cbb5d; }
+        .hf-accepted-status-error { color: #ff375f; }
       </style>
 
       <!-- 3D Floating Toggle Button featuring the custom HintFlow Circuit Logo -->
@@ -1528,6 +1779,7 @@ class HintFlowSidebar {
         <!-- Footer Menu -->
         <div class="hf-sidebar-footer">
           <span class="hf-footer-item" id="footer-menu-settings">⚙️ Settings</span>
+          <span class="hf-footer-item" id="footer-menu-sheet" style="display: none;">📊 Push to Sheet</span>
           <span class="hf-footer-item" id="footer-menu-tips">💡 Interview Tips</span>
           <span class="hf-footer-item" id="footer-menu-notes">📝 Notes</span>
         </div>
@@ -1544,7 +1796,6 @@ class HintFlowSidebar {
               <select class="hf-form-select" id="settings-provider-select">
                 <option value="gemini">Google AI Studio (Gemini)</option>
                 <option value="groq">Groq Cloud (Llama / Gemma)</option>
-                <option value="backend">Local Backend Server (Express)</option>
               </select>
             </div>
 
@@ -1556,10 +1807,10 @@ class HintFlowSidebar {
             <div class="hf-form-group" id="settings-gemini-model-group">
               <label class="hf-form-label">Gemini Model</label>
               <select class="hf-form-select" id="settings-gemini-model-select">
+                <option value="gemini-3.6-flash">Gemini 3.6 Flash (Recommended)</option>
                 <option value="gemini-3.5-flash">Gemini 3.5 Flash (Advanced)</option>
-                <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast)</option>
                 <option value="gemini-2.5-pro">Gemini 2.5 Pro (Thorough)</option>
-                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
               </select>
             </div>
 
@@ -1578,11 +1829,6 @@ class HintFlowSidebar {
               </select>
             </div>
 
-            <div class="hf-form-group" id="settings-backend-url-group">
-              <label class="hf-form-label">Backend URL</label>
-              <input type="text" class="hf-form-input" placeholder="http://localhost:3000/api/hint" id="settings-backend-url-input" />
-            </div>
-
             <div class="hf-form-group">
               <label class="hf-form-label">Default Persona</label>
               <select class="hf-form-select" id="settings-persona-select">
@@ -1596,6 +1842,109 @@ class HintFlowSidebar {
           <div class="hf-settings-footer">
             <button class="hf-btn-test" id="btn-test-settings-connection">Test Connection</button>
             <button class="hf-btn-save" id="btn-save-settings-form">Save & Close</button>
+          </div>
+        </div>
+
+        <!-- Solution Accepted Push to Google Sheets Modal Overlay -->
+        <div class="hf-accepted-overlay" id="accepted-modal-overlay">
+          <div class="hf-accepted-header">
+            <div class="hf-accepted-title-badge">
+              <span>🎉 Solution Accepted!</span>
+            </div>
+            <button class="hf-btn-close" id="close-accepted-btn" title="Dismiss">✕</button>
+          </div>
+
+          <div class="hf-accepted-body">
+            <!-- Problem Details & Metrics -->
+            <div class="hf-accepted-problem-card">
+              <div class="hf-accepted-problem-top">
+                <span class="hf-accepted-problem-name" id="accepted-problem-title">Problem Title</span>
+                <span class="hf-diff-badge medium" id="accepted-problem-diff">Medium</span>
+              </div>
+              <div class="hf-metrics-grid" id="accepted-metrics-grid">
+                <div class="hf-metric-card" id="accepted-runtime-card">
+                  <span class="hf-metric-label">Runtime</span>
+                  <span class="hf-metric-value" id="accepted-runtime-val">-</span>
+                  <span class="hf-metric-beats" id="accepted-runtime-beats"></span>
+                </div>
+                <div class="hf-metric-card" id="accepted-memory-card">
+                  <span class="hf-metric-label">Memory</span>
+                  <span class="hf-metric-value" id="accepted-memory-val">-</span>
+                  <span class="hf-metric-beats" id="accepted-memory-beats"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Fields -->
+            <div class="hf-accepted-field">
+              <label class="hf-accepted-label">Time Taken (minutes)</label>
+              <input type="number" class="hf-accepted-input" id="accepted-time-input" min="1" value="1" />
+            </div>
+
+            <div class="hf-accepted-field">
+              <label class="hf-accepted-label">Short Note (optional)</label>
+              <textarea class="hf-accepted-textarea" id="accepted-note-input" placeholder="Key approach, complexity, patterns, hints used..."></textarea>
+            </div>
+
+            <!-- Destination Sheet Selection Card -->
+            <div class="hf-sheet-dest-card">
+              <div class="hf-sheet-dest-header">
+                <span class="hf-accepted-label">📊 Destination Spreadsheet</span>
+                <!-- Segmented Mode Control -->
+                <div class="hf-sheet-mode-segmented">
+                  <button type="button" class="hf-sheet-mode-btn active" id="btn-mode-existing-sheet" data-mode="existing">
+                    Existing Sheet
+                  </button>
+                  <button type="button" class="hf-sheet-mode-btn" id="btn-mode-new-sheet" data-mode="new">
+                    + New Sheet
+                  </button>
+                </div>
+              </div>
+
+              <!-- Option A: Existing Sheet Section -->
+              <div class="hf-sheet-section" id="section-existing-sheet">
+                <div class="hf-sheet-select-row">
+                  <select class="hf-accepted-select" id="accepted-sheet-select">
+                    <option value="">Loading sheets...</option>
+                  </select>
+                  <a class="hf-sheet-open-link-btn" id="accepted-sheet-open-link" href="#" target="_blank" title="Open this sheet in Google Drive">
+                    Open ↗
+                  </a>
+                </div>
+
+                <!-- Previous Sheets Links List -->
+                <div class="hf-previous-sheets-wrapper" id="previous-sheets-wrapper" style="display: none;">
+                  <div class="hf-previous-sheets-title">Previous Sheets:</div>
+                  <div class="hf-previous-sheets-list" id="previous-sheets-list">
+                    <!-- Populated dynamically -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Option B: New Sheet with Custom Name Section -->
+              <div class="hf-sheet-section" id="section-new-sheet" style="display: none;">
+                <div class="hf-accepted-field" style="margin-bottom: 4px;">
+                  <label class="hf-accepted-sublabel">Sheet Name</label>
+                  <input type="text" class="hf-accepted-input" id="accepted-new-sheet-name-input" placeholder="e.g. Blind 75 Tracker, LeetCode 2026" value="HintFlow — LeetCode Tracker" />
+                </div>
+                <div class="hf-sheet-help-text">
+                  ✨ A new formatted spreadsheet with this name will be created in your Google Drive and remembered for future solves.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Status indicator -->
+          <div class="hf-accepted-status" id="accepted-status-msg" style="display: none;"></div>
+
+          <!-- Actions -->
+          <div class="hf-accepted-footer">
+            <button class="hf-accepted-btn-push" id="btn-push-google-sheet">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-4h5v4zm0-6H7V7h5v4zm6 6h-4V7h4v10z"/>
+              </svg>
+              <span>Push to Google Sheet</span>
+            </button>
           </div>
         </div>
       </div>
@@ -1695,6 +2044,13 @@ class HintFlowSidebar {
       this.toggleSettingsFormFields(e.target.value);
     });
 
+    // Solution Accepted Push to Google Sheets modal
+    shadow.querySelector('#close-accepted-btn')?.addEventListener('click', () => this.closeAcceptedModal());
+    shadow.querySelector('#btn-push-google-sheet')?.addEventListener('click', () => this.handlePushToSheet());
+    shadow.querySelector('#footer-menu-sheet')?.addEventListener('click', () => this.reopenAcceptedModal());
+    shadow.querySelector('#btn-mode-existing-sheet')?.addEventListener('click', () => this.setSheetMode('existing'));
+    shadow.querySelector('#btn-mode-new-sheet')?.addEventListener('click', () => this.setSheetMode('new'));
+
     // Simple alerts
     shadow.querySelector('#footer-menu-tips').addEventListener('click', () => {
       alert("💡 Interview Tips:\n1. Clarify requirements before coding.\n2. State time/space complexity upfront.\n3. Identify edge cases early.\n4. Walk through a dry run out loud.");
@@ -1766,7 +2122,6 @@ class HintFlowSidebar {
     shadow.querySelector('#settings-gemini-model-select').value = this.settings.geminiModel;
     shadow.querySelector('#settings-groq-key-input').value = this.settings.groqApiKey || '';
     shadow.querySelector('#settings-groq-model-select').value = this.settings.groqModel;
-    shadow.querySelector('#settings-backend-url-input').value = this.settings.backendUrl || '';
     shadow.querySelector('#settings-persona-select').value = this.settings.persona;
 
     this.toggleSettingsFormFields(this.settings.provider);
@@ -1784,7 +2139,6 @@ class HintFlowSidebar {
     shadow.querySelector('#settings-gemini-model-group').style.display = provider === 'gemini' ? 'flex' : 'none';
     shadow.querySelector('#settings-groq-key-group').style.display = provider === 'groq' ? 'flex' : 'none';
     shadow.querySelector('#settings-groq-model-group').style.display = provider === 'groq' ? 'flex' : 'none';
-    shadow.querySelector('#settings-backend-url-group').style.display = provider === 'backend' ? 'flex' : 'none';
   }
 
   async saveSettingsForm() {
@@ -1794,7 +2148,6 @@ class HintFlowSidebar {
     const geminiModel = shadow.querySelector('#settings-gemini-model-select').value;
     const groqApiKey = shadow.querySelector('#settings-groq-key-input').value.trim();
     const groqModel = shadow.querySelector('#settings-groq-model-select').value;
-    const backendUrl = shadow.querySelector('#settings-backend-url-input').value.trim();
     const persona = shadow.querySelector('#settings-persona-select').value;
 
     if (provider === 'gemini' && !geminiApiKey) {
@@ -1805,12 +2158,8 @@ class HintFlowSidebar {
       this.showSettingsStatus("Please enter a Groq API Key.", "red");
       return;
     }
-    if (provider === 'backend' && !backendUrl) {
-      this.showSettingsStatus("Please enter a Backend URL.", "red");
-      return;
-    }
 
-    await this.saveSettings({ provider, geminiApiKey, geminiModel, groqApiKey, groqModel, backendUrl, persona });
+    await this.saveSettings({ provider, geminiApiKey, geminiModel, groqApiKey, groqModel, persona });
     this.showSettingsStatus("Settings saved successfully!", "green");
     this.updateBehaviorSelector();
 
@@ -1831,7 +2180,6 @@ class HintFlowSidebar {
     const geminiModel = shadow.querySelector('#settings-gemini-model-select').value;
     const groqApiKey = shadow.querySelector('#settings-groq-key-input').value.trim();
     const groqModel = shadow.querySelector('#settings-groq-model-select').value;
-    const backendUrl = shadow.querySelector('#settings-backend-url-input').value.trim();
 
     this.showSettingsStatus("Testing connection...", "yellow");
 
@@ -1847,8 +2195,12 @@ class HintFlowSidebar {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ parts: [{ text: "Hello. Respond in 2 words." }] }] })
         });
-        if (response.ok) this.showSettingsStatus("Gemini connection successful!", "green");
-        else this.showSettingsStatus("Connection failed. Check API key.", "red");
+        if (response.ok) {
+          this.showSettingsStatus("Gemini connection successful!", "green");
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          this.showSettingsStatus(`Gemini failed: ${errData.error?.message || response.statusText || response.status}`, "red");
+        }
       } catch (e) {
         this.showSettingsStatus(`Network Error: ${e.message}`, "red");
       }
@@ -1864,22 +2216,14 @@ class HintFlowSidebar {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
           body: JSON.stringify({ model: groqModel, messages: [{ role: 'user', content: 'Hello' }], max_tokens: 10 })
         });
-        if (response.ok) this.showSettingsStatus("Groq connection successful!", "green");
-        else this.showSettingsStatus("Groq connection failed.", "red");
+        if (response.ok) {
+          this.showSettingsStatus("Groq connection successful!", "green");
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          this.showSettingsStatus(`Groq failed: ${errData.error?.message || response.statusText || response.status}`, "red");
+        }
       } catch (e) {
         this.showSettingsStatus(`Network Error: ${e.message}`, "red");
-      }
-    } else {
-      if (!backendUrl) {
-        this.showSettingsStatus("Enter Backend URL to test.", "red");
-        return;
-      }
-      try {
-        const response = await fetch(backendUrl.replace("/api/hint", "/"));
-        if (response.ok) this.showSettingsStatus("Connected to backend server!", "green");
-        else this.showSettingsStatus(`Backend status: ${response.status}`, "red");
-      } catch (e) {
-        this.showSettingsStatus(`Backend Error: ${e.message}`, "red");
       }
     }
   }
@@ -1924,144 +2268,31 @@ class HintFlowSidebar {
     if (!log) return;
     log.innerHTML = '';
 
-    const messages = (this.histories[currentTab] || []).filter(msg => msg && ((msg.text && msg.text.trim()) || msg.type === 'push_to_excel'));
+    const messages = (this.histories[currentTab] || []).filter(msg => msg && msg.text && msg.text.trim());
     messages.forEach(msg => {
       const msgEl = document.createElement('div');
+      msgEl.className = `hf-msg ${msg.role === 'model' ? 'model' : 'user'}`;
 
-      if (msg.type === 'push_to_excel') {
-        msgEl.className = 'hf-excel-card';
-        const diffLower = (msg.problemData.difficulty || 'medium').toLowerCase();
+      const isModel = msg.role === 'model';
+      const isSystem = msg.text.startsWith('*System:');
+      const name = isModel ? (currentTab === 'interviewer' ? 'Interviewer' : 'AI Tutor') : 'You';
 
-        msgEl.innerHTML = `
-          <div class="hf-excel-header">
-            <div class="hf-excel-title">
-              <span>🎉 Solution Accepted!</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span class="hf-excel-badge ${diffLower}">${msg.problemData.difficulty || 'Medium'}</span>
-              <button class="hf-excel-close-btn" title="Dismiss">✕</button>
-            </div>
-          </div>
-          <div style="font-size: 13.5px; font-weight: 600; color: #ffffff; padding: 0 2px;">
-            ${msg.problemData.title}
-          </div>
-          <div class="hf-excel-field">
-            <label class="hf-excel-label">Time Taken (minutes)</label>
-            <input type="number" class="hf-excel-input" value="${msg.problemData.timeTakenMin || 1}" min="1" />
-          </div>
-          <div class="hf-excel-field">
-            <label class="hf-excel-label">Short Note (optional)</label>
-            <textarea class="hf-excel-textarea" placeholder="Key approach, complexity, hints used...">${msg.problemData.note || ''}</textarea>
-          </div>
-          <div class="hf-excel-actions" style="margin-top: 4px;">
-            <button class="hf-excel-btn" ${msg.isPushed ? 'disabled' : ''}>
-              ${msg.isPushed ? 'Saved to Excel ✓' : 'Push to Excel'}
-            </button>
-          </div>
-          <div class="hf-excel-status" style="display: ${msg.isPushed || msg.errorMessage ? 'block' : 'none'}; margin-top: 4px;">
-            ${msg.isPushed && msg.pushedUrl ? `<span class="hf-excel-status-success">Pushed! <a href="${msg.pushedUrl}" target="_blank" style="color: #00b8a3; text-decoration: underline;">View Sheet ↗</a></span>` : ''}
-            ${msg.errorMessage ? `<span class="hf-excel-status-error">Error: ${msg.errorMessage}</span>` : ''}
-          </div>
-        `;
+      let formattedText = this.formatMarkdown(msg.text);
 
-        // Input listeners to capture user changes and sync across tabs
-        const timeInput = msgEl.querySelector('.hf-excel-input');
-        const noteInput = msgEl.querySelector('.hf-excel-textarea');
-        const pushBtn = msgEl.querySelector('.hf-excel-btn');
-        const statusDiv = msgEl.querySelector('.hf-excel-status');
-        const closeBtn = msgEl.querySelector('.hf-excel-close-btn');
-
-        closeBtn.addEventListener('click', () => {
-          // Remove from both histories by id
-          for (const tabKey of ['interviewer', 'hints']) {
-            this.histories[tabKey] = (this.histories[tabKey] || []).filter(m => m.id !== msg.id);
-          }
-          this.renderMessages();
-        });
-
-        timeInput.addEventListener('input', (e) => {
-          const val = Number(e.target.value) || 1;
-          msg.problemData.timeTakenMin = val;
-          // sync to other tabs silently
-          for (const tabKey of ['interviewer', 'hints']) {
-            const card = (this.histories[tabKey] || []).find(m => m.type === 'push_to_excel' && m.id === msg.id);
-            if (card) card.problemData.timeTakenMin = val;
-          }
-        });
-
-        noteInput.addEventListener('input', (e) => {
-          const val = e.target.value;
-          msg.problemData.note = val;
-          // sync to other tabs silently
-          for (const tabKey of ['interviewer', 'hints']) {
-            const card = (this.histories[tabKey] || []).find(m => m.type === 'push_to_excel' && m.id === msg.id);
-            if (card) card.problemData.note = val;
-          }
-        });
-
-        pushBtn.addEventListener('click', () => {
-          pushBtn.disabled = true;
-          pushBtn.textContent = 'Saving...';
-          statusDiv.innerHTML = '';
-          statusDiv.style.display = 'none';
-
-          const today = new Date().toISOString().split("T")[0];
-          const payload = {
-            date: today,
-            problem: msg.problemData.title,
-            difficulty: msg.problemData.difficulty || 'Medium',
-            language: msg.problemData.language || '',
-            timeTaken: msg.problemData.timeTakenMin,
-            note: (msg.problemData.note || '').trim()
-          };
-
-          chrome.runtime.sendMessage({ action: 'SAVE_TO_SHEET', payload }, (response) => {
-            if (chrome.runtime.lastError) {
-              this.syncExcelCardState(msg.id, {
-                isPushed: false,
-                errorMessage: chrome.runtime.lastError.message
-              });
-              return;
-            }
-
-            if (response && response.success) {
-              this.syncExcelCardState(msg.id, {
-                isPushed: true,
-                pushedUrl: response.spreadsheetUrl,
-                errorMessage: null
-              });
-            } else {
-              this.syncExcelCardState(msg.id, {
-                isPushed: false,
-                errorMessage: response?.error || 'Failed to save to Google Sheet.'
-              });
-            }
-          });
-        });
+      if (isSystem) {
+        msgEl.style.alignSelf = 'center';
+        msgEl.style.maxWidth = '95%';
+        msgEl.style.opacity = '0.9';
+        msgEl.innerHTML = `<div style="font-size: 11.5px; font-weight: 500; background: #1c1c1c; padding: 8px 16px; border-radius: 8px; border: 1px solid #303030; color: #ffa116; text-align: center;">${formattedText.replace(/\*System:\s*/i, '')}</div>`;
       } else {
-        msgEl.className = `hf-msg ${msg.role === 'model' ? 'model' : 'user'}`;
-
-        const isModel = msg.role === 'model';
-        const isSystem = msg.text.startsWith('*System:');
-        const name = isModel ? (currentTab === 'interviewer' ? 'Interviewer' : 'AI Tutor') : 'You';
-
-        let formattedText = this.formatMarkdown(msg.text);
-
-        if (isSystem) {
-          msgEl.style.alignSelf = 'center';
-          msgEl.style.maxWidth = '95%';
-          msgEl.style.opacity = '0.9';
-          msgEl.innerHTML = `<div style="font-size: 11.5px; font-weight: 500; background: #1c1c1c; padding: 8px 16px; border-radius: 8px; border: 1px solid #303030; color: #ffa116; text-align: center;">${formattedText.replace(/\*System:\s*/i, '')}</div>`;
-        } else {
-          msgEl.innerHTML = `
-            <div class="hf-msg-header">
-              <span class="hf-msg-avatar">${isModel ? '🤖' : '👤'}</span>
-              <span class="hf-msg-name">${name}</span>
-              <span class="hf-msg-time" style="font-weight: 400; opacity: 0.7; font-size: 10px; margin-left: 4px;">${msg.time}</span>
-            </div>
-            <div class="hf-msg-bubble">${formattedText}</div>
-          `;
-        }
+        msgEl.innerHTML = `
+          <div class="hf-msg-header">
+            <span class="hf-msg-avatar">${isModel ? '🤖' : '👤'}</span>
+            <span class="hf-msg-name">${name}</span>
+            <span class="hf-msg-time" style="font-weight: 400; opacity: 0.7; font-size: 10px; margin-left: 4px;">${msg.time}</span>
+          </div>
+          <div class="hf-msg-bubble">${formattedText}</div>
+        `;
       }
       log.appendChild(msgEl);
     });
@@ -2221,12 +2452,10 @@ class HintFlowSidebar {
 
     try {
       let result = null;
-      if (this.settings.provider === 'gemini') {
-        result = await this.callGeminiDirect(problemContext, codeState, userPrompt, historyContext, action);
-      } else if (this.settings.provider === 'groq') {
+      if (this.settings.provider === 'groq') {
         result = await this.callGroqDirect(problemContext, codeState, userPrompt, historyContext, action);
       } else {
-        result = await this.callBackendServer(problemContext, codeState, userPrompt, activeHistory.slice(0, -1), action);
+        result = await this.callGeminiDirect(problemContext, codeState, userPrompt, historyContext, action);
       }
 
       if (result) {
@@ -2272,53 +2501,277 @@ class HintFlowSidebar {
     this.updateWidgets();
   }
 
-  addPushToExcelCard(problemData) {
-    const cardId = `push_excel_${Date.now()}`;
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    for (const tabKey of ['interviewer', 'hints']) {
-      // Avoid duplicate active push cards for same slug
-      const exists = (this.histories[tabKey] || []).some(
-        m => m.type === 'push_to_excel' && m.problemData.slug === problemData.slug && !m.isPushed
-      );
-      if (!exists) {
-        this.histories[tabKey].push({
-          role: 'system_card',
-          type: 'push_to_excel',
-          time,
-          problemData: {
-            title: problemData.title,
-            difficulty: problemData.difficulty,
-            timeTakenMin: problemData.timeTakenMin,
-            note: problemData.note || '',
-            slug: problemData.slug,
-            language: problemData.language || ''
-          },
-          id: cardId,
-          isPushed: false,
-          pushedUrl: null,
-          errorMessage: null
-        });
-      }
+  setSheetMode(mode) {
+    this.sheetMode = mode; // 'existing' | 'new'
+    const shadow = this.shadowRoot;
+    const btnExisting = shadow.querySelector('#btn-mode-existing-sheet');
+    const btnNew = shadow.querySelector('#btn-mode-new-sheet');
+    const secExisting = shadow.querySelector('#section-existing-sheet');
+    const secNew = shadow.querySelector('#section-new-sheet');
+
+    if (mode === 'existing') {
+      btnExisting?.classList.add('active');
+      btnNew?.classList.remove('active');
+      if (secExisting) secExisting.style.display = 'block';
+      if (secNew) secNew.style.display = 'none';
+    } else {
+      btnNew?.classList.add('active');
+      btnExisting?.classList.remove('active');
+      if (secNew) secNew.style.display = 'block';
+      if (secExisting) secExisting.style.display = 'none';
     }
-    this.open();
-    this.renderMessages();
   }
 
-  syncExcelCardState(cardId, updates) {
-    for (const tabKey of ['interviewer', 'hints']) {
-      const history = this.histories[tabKey] || [];
-      const card = history.find(m => m.type === 'push_to_excel' && m.id === cardId);
-      if (card) {
-        if (updates.timeTakenMin !== undefined) card.problemData.timeTakenMin = updates.timeTakenMin;
-        if (updates.note !== undefined) card.problemData.note = updates.note;
-        if (updates.isPushed !== undefined) card.isPushed = updates.isPushed;
-        if (updates.pushedUrl !== undefined) card.pushedUrl = updates.pushedUrl;
-        if (updates.errorMessage !== undefined) card.errorMessage = updates.errorMessage;
-        if (updates.language !== undefined) card.problemData.language = updates.language;
+  loadSheetsForModal() {
+    const shadow = this.shadowRoot;
+    const selectEl = shadow.querySelector('#accepted-sheet-select');
+    const openLinkEl = shadow.querySelector('#accepted-sheet-open-link');
+    const prevWrapper = shadow.querySelector('#previous-sheets-wrapper');
+    const prevList = shadow.querySelector('#previous-sheets-list');
+
+    chrome.runtime.sendMessage({ action: 'GET_SHEETS_LIST' }, (response) => {
+      const list = response?.list || [];
+      const activeId = response?.activeId || (list[0]?.id || null);
+
+      if (!selectEl) return;
+      selectEl.innerHTML = '';
+
+      if (list.length === 0) {
+        // No sheets yet -> switch to new sheet mode automatically
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'No previous sheets found';
+        selectEl.appendChild(opt);
+        if (openLinkEl) openLinkEl.style.display = 'none';
+        if (prevWrapper) prevWrapper.style.display = 'none';
+        this.setSheetMode('new');
+        return;
       }
+
+      if (openLinkEl) openLinkEl.style.display = 'inline-flex';
+
+      list.forEach((sheet) => {
+        const opt = document.createElement('option');
+        opt.value = sheet.id;
+        opt.textContent = sheet.name || 'LeetCode Tracker';
+        if (sheet.id === activeId) opt.selected = true;
+        selectEl.appendChild(opt);
+      });
+
+      // Update link to selected sheet
+      const updateLink = () => {
+        const selectedId = selectEl.value;
+        const found = list.find((s) => s.id === selectedId) || list[0];
+        if (found && openLinkEl) {
+          openLinkEl.href = found.url;
+        }
+      };
+      updateLink();
+
+      selectEl.onchange = () => {
+        updateLink();
+        // Highlight active pill
+        prevList?.querySelectorAll('.hf-sheet-pill').forEach(pill => {
+          pill.classList.toggle('hf-sheet-pill-active', pill.dataset.sheetId === selectEl.value);
+        });
+      };
+
+      // Populate previous sheets pill list with clickable links
+      if (prevWrapper && prevList) {
+        prevList.innerHTML = '';
+        if (list.length > 0) {
+          prevWrapper.style.display = 'flex';
+          list.forEach((sheet) => {
+            const pill = document.createElement('div');
+            pill.className = `hf-sheet-pill ${sheet.id === activeId ? 'hf-sheet-pill-active' : ''}`;
+            pill.dataset.sheetId = sheet.id;
+            pill.title = `Click to select "${sheet.name}". Or click ↗ to open in Google Drive.`;
+            pill.innerHTML = `
+              <span class="hf-sheet-pill-name" style="cursor: pointer;">📄 ${sheet.name}</span>
+              <a href="${sheet.url}" target="_blank" class="hf-sheet-pill-open" title="Open sheet in new tab" style="color: inherit; opacity: 0.7; text-decoration: none; padding: 0 2px;">↗</a>
+            `;
+
+            // Clicking the pill name selects it
+            pill.querySelector('.hf-sheet-pill-name')?.addEventListener('click', () => {
+              selectEl.value = sheet.id;
+              updateLink();
+              this.setSheetMode('existing');
+              prevList.querySelectorAll('.hf-sheet-pill').forEach(p => p.classList.remove('hf-sheet-pill-active'));
+              pill.classList.add('hf-sheet-pill-active');
+            });
+
+            prevList.appendChild(pill);
+          });
+        } else {
+          prevWrapper.style.display = 'none';
+        }
+      }
+
+      this.setSheetMode('existing');
+    });
+  }
+
+  openAcceptedModal(problemData) {
+    if (!problemData) return;
+    this.activeAcceptedData = { ...problemData };
+
+    const shadow = this.shadowRoot;
+
+    // 1. Problem title & difficulty
+    const titleEl = shadow.querySelector('#accepted-problem-title');
+    if (titleEl) titleEl.textContent = problemData.title || problemData.slug || 'Problem Solved';
+
+    const diffEl = shadow.querySelector('#accepted-problem-diff');
+    if (diffEl) {
+      const diff = problemData.difficulty || 'Medium';
+      diffEl.textContent = diff;
+      diffEl.className = `hf-diff-badge ${(diff).toLowerCase()}`;
     }
-    // Re-render to show updated visual states across all tabs
-    this.renderMessages();
+
+    // 2. Metrics (Runtime, Memory)
+    const runtimeVal = shadow.querySelector('#accepted-runtime-val');
+    const runtimeBeats = shadow.querySelector('#accepted-runtime-beats');
+    if (runtimeVal) runtimeVal.textContent = problemData.runtime || '-';
+    if (runtimeBeats) runtimeBeats.textContent = problemData.runtimeBeats ? `Beats ${problemData.runtimeBeats}` : '';
+
+    const memoryVal = shadow.querySelector('#accepted-memory-val');
+    const memoryBeats = shadow.querySelector('#accepted-memory-beats');
+    if (memoryVal) memoryVal.textContent = problemData.memory || '-';
+    if (memoryBeats) memoryBeats.textContent = problemData.memoryBeats ? `Beats ${problemData.memoryBeats}` : '';
+
+    // 3. Form fields
+    const timeInput = shadow.querySelector('#accepted-time-input');
+    if (timeInput) timeInput.value = problemData.timeTakenMin || 1;
+
+    const noteInput = shadow.querySelector('#accepted-note-input');
+    if (noteInput) noteInput.value = problemData.note || '';
+
+    const newSheetNameInput = shadow.querySelector('#accepted-new-sheet-name-input');
+    if (newSheetNameInput) newSheetNameInput.value = 'HintFlow — LeetCode Tracker';
+
+    // 4. Load Sheets destination options
+    this.loadSheetsForModal();
+
+    // 5. Reset Push Button & Status
+    const pushBtn = shadow.querySelector('#btn-push-google-sheet');
+    if (pushBtn) {
+      pushBtn.disabled = false;
+      pushBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-4h5v4zm0-6H7V7h5v4zm6 6h-4V7h4v10z"/>
+        </svg>
+        <span>Push to Google Sheet</span>
+      `;
+    }
+
+    const statusMsg = shadow.querySelector('#accepted-status-msg');
+    if (statusMsg) {
+      statusMsg.style.display = 'none';
+      statusMsg.innerHTML = '';
+    }
+
+    // 6. Show footer menu item so user can reopen if closed
+    const footerSheet = shadow.querySelector('#footer-menu-sheet');
+    if (footerSheet) footerSheet.style.display = 'inline-flex';
+
+    // 7. Open sidebar & slide in modal overlay
+    this.open();
+    shadow.querySelector('#accepted-modal-overlay')?.classList.add('open');
+  }
+
+  closeAcceptedModal() {
+    this.shadowRoot.querySelector('#accepted-modal-overlay')?.classList.remove('open');
+  }
+
+  reopenAcceptedModal() {
+    if (this.activeAcceptedData) {
+      this.openAcceptedModal(this.activeAcceptedData);
+    }
+  }
+
+  handlePushToSheet() {
+    if (!this.activeAcceptedData) return;
+
+    const shadow = this.shadowRoot;
+    const pushBtn = shadow.querySelector('#btn-push-google-sheet');
+    const statusMsg = shadow.querySelector('#accepted-status-msg');
+    const timeInput = shadow.querySelector('#accepted-time-input');
+    const noteInput = shadow.querySelector('#accepted-note-input');
+    const selectSheet = shadow.querySelector('#accepted-sheet-select');
+    const newSheetNameInput = shadow.querySelector('#accepted-new-sheet-name-input');
+
+    const isNewSheet = this.sheetMode === 'new';
+    const targetSpreadsheetId = isNewSheet ? null : (selectSheet?.value || null);
+    const newSheetTitle = isNewSheet ? (newSheetNameInput?.value || '').trim() || 'HintFlow — LeetCode Tracker' : null;
+
+    const timeTaken = Number(timeInput?.value) || 1;
+    const note = (noteInput?.value || '').trim();
+
+    if (pushBtn) {
+      pushBtn.disabled = true;
+      pushBtn.innerHTML = `<span>Saving to Google Sheet...</span>`;
+    }
+    if (statusMsg) {
+      statusMsg.style.display = 'none';
+      statusMsg.innerHTML = '';
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const payload = {
+      date: today,
+      problem: this.activeAcceptedData.title,
+      difficulty: this.activeAcceptedData.difficulty || 'Medium',
+      language: this.activeAcceptedData.language || this.currentLanguage || '',
+      timeTaken: timeTaken,
+      note: note,
+      createNewSheet: isNewSheet,
+      newSheetTitle: newSheetTitle,
+      targetSpreadsheetId: targetSpreadsheetId
+    };
+
+    chrome.runtime.sendMessage({ action: 'SAVE_TO_SHEET', payload }, (response) => {
+      if (chrome.runtime.lastError) {
+        if (pushBtn) {
+          pushBtn.disabled = false;
+          pushBtn.innerHTML = `<span>Retry Push to Google Sheet</span>`;
+        }
+        if (statusMsg) {
+          statusMsg.style.display = 'block';
+          statusMsg.className = 'hf-accepted-status hf-accepted-status-error';
+          statusMsg.textContent = `Error: ${chrome.runtime.lastError.message}`;
+        }
+        return;
+      }
+
+      if (response && response.success) {
+        if (pushBtn) {
+          pushBtn.disabled = true;
+          pushBtn.innerHTML = `<span>Saved to Google Sheet ✓</span>`;
+        }
+        if (statusMsg) {
+          statusMsg.style.display = 'block';
+          statusMsg.className = 'hf-accepted-status hf-accepted-status-success';
+          statusMsg.innerHTML = `🎉 Successfully pushed! <a href="${response.spreadsheetUrl}" target="_blank" style="color: #2cbb5d; font-weight: 700; text-decoration: underline; margin-left: 6px;">Open Sheet ↗</a>`;
+        }
+        // Refresh sheet list in background
+        this.loadSheetsForModal();
+      } else {
+        if (pushBtn) {
+          pushBtn.disabled = false;
+          pushBtn.innerHTML = `<span>Retry Push to Google Sheet</span>`;
+        }
+        if (statusMsg) {
+          statusMsg.style.display = 'block';
+          statusMsg.className = 'hf-accepted-status hf-accepted-status-error';
+          statusMsg.textContent = `Error: ${response?.error || 'Failed to save to Google Sheet.'}`;
+        }
+      }
+    });
+  }
+
+  // Backwards compatibility alias
+  addPushToExcelCard(problemData) {
+    this.openAcceptedModal(problemData);
   }
 
   getSystemInstruction(mode, persona) {
@@ -2442,20 +2895,6 @@ Respond with JSON payload.`;
     const data = await response.json();
     const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     return JSON.parse(responseText);
-  }
-
-  async callBackendServer(problem, codeState, userPrompt, history, action) {
-    const url = this.settings.backendUrl;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        problem, codeState, userPrompt, history, action,
-        settings: { ...this.settings, mode: this.activeTab }
-      })
-    });
-    if (!response.ok) throw new Error(`Backend status ${response.status}`);
-    return await response.json();
   }
 
   async callGroqDirect(problem, codeState, userPrompt, history, action) {

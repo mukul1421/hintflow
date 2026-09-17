@@ -8,6 +8,7 @@ const SHEET_HEADERS = ["Date", "Problem", "Difficulty", "Language", "Time Taken 
 const STORAGE_KEYS = {
   SPREADSHEET_ID: "hintflow_spreadsheet_id",
   SAVED_COUNT: "hintflow_saved_count",
+  SHEETS_LIST: "hintflow_sheets_list",
 };
 
 /**
@@ -328,22 +329,85 @@ function formatRowRequest(sheetId, rowIndex, difficulty) {
 }
 
 /**
- * Get existing spreadsheetId from storage, or auto-create a new Google Sheet
+ * Check if the spreadsheet is active and not trashed in Google Drive
  */
-async function getOrCreateSpreadsheet() {
-  const stored = await chrome.storage.local.get([STORAGE_KEYS.SPREADSHEET_ID]);
-  if (stored[STORAGE_KEYS.SPREADSHEET_ID]) {
-    return stored[STORAGE_KEYS.SPREADSHEET_ID];
+async function checkSpreadsheetActive(spreadsheetId) {
+  try {
+    const res = await fetchWithAuth(`https://www.googleapis.com/drive/v3/files/${spreadsheetId}?fields=trashed`);
+    if (res.ok) {
+      const metadata = await res.json();
+      return metadata.trashed === false;
+    }
+  } catch (err) {
+    console.error("[HintFlow] Error checking spreadsheet active state:", err);
+  }
+  return false;
+}
+
+/**
+ * Get stored list of spreadsheets created by user
+ */
+async function getStoredSheetsList() {
+  const stored = await chrome.storage.local.get([STORAGE_KEYS.SHEETS_LIST, STORAGE_KEYS.SPREADSHEET_ID]);
+  let list = stored[STORAGE_KEYS.SHEETS_LIST] || [];
+  const activeId = stored[STORAGE_KEYS.SPREADSHEET_ID] || null;
+
+  // Auto-heal/migrate: if list is empty but activeId exists, record it
+  if (list.length === 0 && activeId) {
+    list = [{
+      id: activeId,
+      name: SPREADSHEET_TITLE,
+      url: `https://docs.google.com/spreadsheets/d/${activeId}`,
+      createdAt: new Date().toISOString(),
+      lastUsedAt: new Date().toISOString()
+    }];
+    await chrome.storage.local.set({ [STORAGE_KEYS.SHEETS_LIST]: list });
   }
 
-  console.log("[HintFlow] Auto-creating new Google Sheet...");
+  return { list, activeId };
+}
+
+/**
+ * Record or update a spreadsheet in user's saved sheets list
+ */
+async function recordSheetInList(spreadsheetId, sheetName) {
+  const { list } = await getStoredSheetsList();
+  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
+  const now = new Date().toISOString();
+  const existingIdx = list.findIndex((s) => s.id === spreadsheetId);
+
+  if (existingIdx >= 0) {
+    if (sheetName) list[existingIdx].name = sheetName;
+    list[existingIdx].lastUsedAt = now;
+  } else {
+    list.unshift({
+      id: spreadsheetId,
+      name: sheetName || SPREADSHEET_TITLE,
+      url: url,
+      createdAt: now,
+      lastUsedAt: now
+    });
+  }
+
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.SHEETS_LIST]: list,
+    [STORAGE_KEYS.SPREADSHEET_ID]: spreadsheetId
+  });
+}
+
+/**
+ * Create a new spreadsheet with a custom title and initialize formatted headers
+ */
+async function createNewSpreadsheet(title) {
+  const sheetTitle = (title || "").trim() || SPREADSHEET_TITLE;
+  console.log(`[HintFlow] Creating new Google Sheet with title: "${sheetTitle}"...`);
 
   // 1. Create spreadsheet
   const createRes = await fetchWithAuth("https://sheets.googleapis.com/v4/spreadsheets", {
     method: "POST",
     body: JSON.stringify({
       properties: {
-        title: SPREADSHEET_TITLE,
+        title: sheetTitle,
       },
       sheets: [
         {
@@ -365,7 +429,7 @@ async function getOrCreateSpreadsheet() {
   const sheetId = sheetData.sheets?.[0]?.properties?.sheetId || 0;
 
   // Save spreadsheetId and sheetId to chrome.storage.local
-  await chrome.storage.local.set({ 
+  await chrome.storage.local.set({
     [STORAGE_KEYS.SPREADSHEET_ID]: spreadsheetId,
     hintflow_sheet_id: sheetId
   });
@@ -385,7 +449,28 @@ async function getOrCreateSpreadsheet() {
     console.warn("[HintFlow] Warning: Failed to write headers to new sheet.", await headerRes.text());
   }
 
+  // 3. Record in sheets list
+  await recordSheetInList(spreadsheetId, sheetTitle);
+
   return spreadsheetId;
+}
+
+/**
+ * Get existing spreadsheetId from storage, or auto-create a new Google Sheet
+ */
+async function getOrCreateSpreadsheet(customTitle) {
+  const stored = await chrome.storage.local.get([STORAGE_KEYS.SPREADSHEET_ID]);
+  if (stored[STORAGE_KEYS.SPREADSHEET_ID]) {
+    const spreadsheetId = stored[STORAGE_KEYS.SPREADSHEET_ID];
+    const isActive = await checkSpreadsheetActive(spreadsheetId);
+    if (isActive) {
+      return spreadsheetId;
+    }
+    console.warn("[HintFlow] Cached Google Sheet is trashed or invalid. Re-creating sheet...");
+    await chrome.storage.local.remove([STORAGE_KEYS.SPREADSHEET_ID, "hintflow_sheet_id"]);
+  }
+
+  return await createNewSpreadsheet(customTitle || SPREADSHEET_TITLE);
 }
 
 /**
@@ -419,9 +504,25 @@ async function ensureHeadersAreUpToDate(spreadsheetId) {
  * Append problem row to the Google Sheet and format it professionally
  */
 async function appendProblemRowInternal(data) {
-  const { date, problem, difficulty, language, timeTaken, note } = data;
-  const spreadsheetId = await getOrCreateSpreadsheet();
-  
+  const { date, problem, difficulty, language, timeTaken, note, targetSpreadsheetId, createNewSheet, newSheetTitle } = data;
+
+  let spreadsheetId = targetSpreadsheetId;
+
+  if (createNewSheet || !spreadsheetId) {
+    if (createNewSheet) {
+      spreadsheetId = await createNewSpreadsheet(newSheetTitle);
+    } else {
+      spreadsheetId = await getOrCreateSpreadsheet();
+    }
+  }
+
+  // Check if target spreadsheet is still active and valid in Drive
+  const isActive = await checkSpreadsheetActive(spreadsheetId);
+  if (!isActive) {
+    console.warn("[HintFlow] Target sheet is inaccessible or trashed. Creating fresh sheet...");
+    spreadsheetId = await createNewSpreadsheet(newSheetTitle || SPREADSHEET_TITLE);
+  }
+
   // Auto-heal/align spreadsheet headers if they are outdated or missing
   await ensureHeadersAreUpToDate(spreadsheetId);
 
@@ -452,7 +553,7 @@ async function appendProblemRowInternal(data) {
         const rowNumber = parseInt(match[1]);
         const rowIndex = rowNumber - 1; // 0-based
         console.log(`[HintFlow] Formatting newly appended row at index ${rowIndex}...`);
-        
+
         const requests = formatRowRequest(sheetId, rowIndex, difficulty);
         const formatUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`;
         const formatRes = await fetchWithAuth(formatUrl, {
@@ -468,6 +569,9 @@ async function appendProblemRowInternal(data) {
   } catch (formatErr) {
     console.error("[HintFlow] Error styling appended row:", formatErr);
   }
+
+  // Update sheet in list as recently used
+  await recordSheetInList(spreadsheetId);
 
   // Update saved count in local storage
   const stored = await chrome.storage.local.get([STORAGE_KEYS.SAVED_COUNT]);
@@ -499,6 +603,13 @@ async function appendProblemRow(data) {
 
 // Handle incoming messages from content scripts and popup UI
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "GET_SHEETS_LIST") {
+    getStoredSheetsList()
+      .then((res) => sendResponse(res))
+      .catch((err) => sendResponse({ list: [], activeId: null, error: err.message }));
+    return true; // Async response
+  }
+
   if (message.action === "SAVE_TO_SHEET") {
     appendProblemRow(message.payload)
       .then((res) => sendResponse(res))
@@ -506,6 +617,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.error("[HintFlow] Error saving to Google Sheet:", err);
         sendResponse({ success: false, error: err.message || "Failed to save to Google Sheet." });
       });
+    return true; // Async response
+  }
+
+  if (message.action === "RESET_SPREADSHEET") {
+    chrome.storage.local.remove([STORAGE_KEYS.SPREADSHEET_ID, "hintflow_sheet_id"]).then(() => {
+      sendResponse({ success: true });
+    });
     return true; // Async response
   }
 

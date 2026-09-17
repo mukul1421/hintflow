@@ -93,30 +93,89 @@
     return stats;
   };
 
+  const handledSubmissions = new Set();
+
+  const handleAcceptedSubmission = (detail = {}) => {
+    if (!isProblemRoute()) return;
+
+    // Immediately reset submit flags
+    codeWasSubmitted = false;
+    submitTime = 0;
+
+    const subId = detail.submissionId ? String(detail.submissionId) : null;
+    if (subId && handledSubmissions.has(subId)) {
+      console.log("[HintFlow] Submission already processed:", subId);
+      return;
+    }
+    if (subId) {
+      handledSubmissions.add(subId);
+    }
+
+    const slug = getSlugFromPath();
+    const activeParser = getParser();
+    const problemInfo = activeParser ? activeParser.getProblemInfo() : { title: slug };
+    const problemNumber = activeParser ? activeParser.getProblemNumber() : "";
+    const title = problemInfo.title || slug;
+    const fullTitle = problemNumber ? `${problemNumber}. ${title}` : title;
+
+    const difficulty = activeParser ? activeParser.getDifficulty() : "Medium";
+    const language = detail.language || (activeParser ? activeParser.getLanguage() : "");
+
+    const startTime = solveStartTimes[slug] || Date.now();
+    const timeTakenMin = Math.max(1, Math.round((Date.now() - startTime) / 60000));
+
+    let defaultNote = "";
+    if (detail.runtime || detail.memory) {
+      const parts = [];
+      if (detail.runtime) parts.push(`Runtime: ${detail.runtime} ${detail.runtimeBeats ? `(Beats ${detail.runtimeBeats})` : ''}`.trim());
+      if (detail.memory) parts.push(`Memory: ${detail.memory} ${detail.memoryBeats ? `(Beats ${detail.memoryBeats})` : ''}`.trim());
+      defaultNote = parts.join("\n");
+    }
+
+    console.log("[HintFlow] Opening Accepted Solution Modal for:", fullTitle);
+    if (sidebar) {
+      sidebar.openAcceptedModal({
+        submissionId: subId,
+        title: fullTitle,
+        difficulty,
+        timeTakenMin,
+        slug,
+        language,
+        runtime: detail.runtime || "",
+        runtimeBeats: detail.runtimeBeats || "",
+        memory: detail.memory || "",
+        memoryBeats: detail.memoryBeats || "",
+        note: defaultNote
+      });
+    }
+  };
+
   const checkAcceptedResult = () => {
     if (!isProblemRoute()) return;
 
-    // Check if a submission was actually made and it's within a 2-minute window
+    // Never check or trigger if viewing submissions history page
+    if (window.location.pathname.includes("/submissions/")) return;
+
+    // Check if a live submission was actually initiated within a 45-second window
     if (!codeWasSubmitted) return;
-    if (Date.now() - submitTime > 120000) {
+    if (Date.now() - submitTime > 45000) {
       codeWasSubmitted = false;
       submitTime = 0;
       return;
     }
 
-    // Look for submission result elements on LeetCode SPA
+    // Look for live submission result elements on LeetCode SPA
     const acceptedElements = [
       ...document.querySelectorAll('[data-e2e-locator="submission-result"]'),
       ...document.querySelectorAll('.text-sd-success-500'),
       ...document.querySelectorAll('.text-green-s'),
-      ...document.querySelectorAll('.text-success'),
-      ...document.querySelectorAll('span, div')
+      ...document.querySelectorAll('.text-success')
     ].filter((el) => {
-      const text = el.innerText || el.textContent || "";
-      if (text.trim() !== "Accepted" || el.children.length > 0) return false;
+      const text = (el.innerText || el.textContent || "").trim();
+      if (text !== "Accepted" || el.children.length > 0) return false;
 
-      // Filter out past submissions list rows, navigation tabs, or buttons
-      const isTabOrList = el.closest('a') || el.closest('tr') || el.closest('button') || el.closest('[role="tab"]');
+      // Filter out past submissions list rows, navigation tabs, tables, or buttons
+      const isTabOrList = el.closest('a') || el.closest('tr') || el.closest('button') || el.closest('[role="tab"]') || el.closest('table');
       if (isTabOrList) return false;
 
       return true;
@@ -131,49 +190,23 @@
 
     if (!parentContainer) return;
 
-    // Deduplication check: generate key for this specific submission view
+    // Deduplication check
     const slug = getSlugFromPath();
-    const submissionKey = `${slug}_${acceptedNode.innerText}_${parentContainer.childElementCount}`;
-
+    const submissionKey = `${slug}_dom_${acceptedNode.innerText}_${parentContainer.childElementCount}`;
     if (lastDetectedSubmissionKey === submissionKey) return;
     lastDetectedSubmissionKey = submissionKey;
 
-    // Reset submit flags immediately so we don't trigger multiple times
     codeWasSubmitted = false;
     submitTime = 0;
 
-    const activeParser = getParser();
-    const problemInfo = activeParser ? activeParser.getProblemInfo() : { title: slug };
-    const problemNumber = activeParser ? activeParser.getProblemNumber() : "";
-    const title = problemInfo.title || slug;
-    const fullTitle = problemNumber ? `${problemNumber}. ${title}` : title;
-
-    const difficulty = activeParser ? activeParser.getDifficulty() : "Medium";
-    const language = activeParser ? activeParser.getLanguage() : "";
-
-    const startTime = solveStartTimes[slug] || Date.now();
-    const timeTakenMin = Math.max(1, Math.round((Date.now() - startTime) / 60000));
-
-    // Extract metrics
     const stats = extractSubmissionStats(parentContainer);
-    let defaultNote = "";
-    if (stats.runtime || stats.memory) {
-      const parts = [];
-      if (stats.runtime) parts.push(`Runtime: ${stats.runtime} ${stats.runtimeBeats ? `(Beats ${stats.runtimeBeats})` : ''}`);
-      if (stats.memory) parts.push(`Memory: ${stats.memory} ${stats.memoryBeats ? `(Beats ${stats.memoryBeats})` : ''}`);
-      defaultNote = parts.join("\n");
-    }
-
-    if (sidebar) {
-      sidebar.addPushToExcelCard({
-        title: fullTitle,
-        difficulty,
-        timeTakenMin,
-        slug,
-        language,
-        note: defaultNote
-      });
-    }
+    handleAcceptedSubmission({
+      submissionId: `dom_${Date.now()}`,
+      runtime: stats.runtime,
+      runtimeBeats: stats.runtimeBeats,
+      memory: stats.memory,
+      memoryBeats: stats.memoryBeats
+    });
   };
 
   const syncToRoute = () => {
@@ -204,9 +237,29 @@
     if (routeObserverStarted) return;
     routeObserverStarted = true;
 
+    // Listen for live Accepted event dispatched by inject.js network interception
+    window.addEventListener("hintflow:submission-accepted", (e) => {
+      console.log("[HintFlow] Live submission-accepted network event detected:", e.detail);
+      handleAcceptedSubmission(e.detail);
+    });
+
+    // Reset submit flags if submission failed or was rejected
+    window.addEventListener("hintflow:submission-rejected", (e) => {
+      console.log("[HintFlow] Submission was not accepted:", e.detail);
+      codeWasSubmitted = false;
+      submitTime = 0;
+    });
+
+    // Listen for submit started event from inject.js
+    window.addEventListener("hintflow:submit-started", () => {
+      console.log("[HintFlow] Live submit request initiated.");
+      codeWasSubmitted = true;
+      submitTime = Date.now();
+    });
+
     // Click listener to watch for Submit clicks and reset on history clicks
     document.addEventListener("click", (e) => {
-      // 1. Reset if they click any link/anchor leading to a submission detail or tab
+      // 1. Reset immediately if clicking any submission history link or anchor
       const anchor = e.target.closest("a");
       if (anchor) {
         const href = anchor.getAttribute("href") || "";
@@ -218,13 +271,23 @@
         }
       }
 
-      // 2. Track Submit click
+      // 2. Reset if clicking any tab buttons (Submissions, Solutions, Editorial, Description)
+      const tabEl = e.target.closest('[role="tab"]') || e.target.closest('button');
+      if (tabEl) {
+        const text = (tabEl.innerText || tabEl.textContent || "").trim();
+        if (/submissions|solutions|editorial|description/i.test(text)) {
+          codeWasSubmitted = false;
+          submitTime = 0;
+        }
+      }
+
+      // 3. Track Submit button click
       const button = e.target.closest("button");
       if (button) {
         const text = (button.innerText || button.textContent || "").trim();
         const locator = button.getAttribute("data-e2e-locator");
         if (text === "Submit" || locator === "console-submit-button") {
-          console.log("[HintFlow] Submit button clicked. Tracking submission...");
+          console.log("[HintFlow] Submit button clicked. Tracking live submission...");
           codeWasSubmitted = true;
           submitTime = Date.now();
         }
@@ -234,7 +297,7 @@
     // Keyboard listener to watch for Ctrl/Cmd + Enter submissions
     document.addEventListener("keydown", (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-        console.log("[HintFlow] Submission shortcut (Ctrl/Cmd + Enter) detected. Tracking submission...");
+        console.log("[HintFlow] Submission shortcut (Ctrl/Cmd + Enter) detected. Tracking live submission...");
         codeWasSubmitted = true;
         submitTime = Date.now();
       }
@@ -266,13 +329,15 @@
     });
     window.addEventListener("hintflow:routechange", syncToRoute);
 
-    // Watch SPA DOM mutations for route sync & Accepted status detection
+    // Watch SPA DOM mutations for route sync & fallback Accepted status detection
     const observer = new MutationObserver(() => {
       if (isProblemRoute()) {
         if (!document.getElementById(rootId)) {
           syncToRoute();
         }
-        checkAcceptedResult();
+        if (codeWasSubmitted) {
+          checkAcceptedResult();
+        }
       }
     });
     observer.observe(document.body, { childList: true, subtree: true });
